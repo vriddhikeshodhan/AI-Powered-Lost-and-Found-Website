@@ -1,5 +1,5 @@
-// import './App.css'; // This file isn't needed for the LandingPage component
-import LandingPage from './components/LandingPage'; // Import your component with a relative path
+import "./App.css";
+import LandingPage from "./components/LandingPage";
 
 function App() {
   return (
