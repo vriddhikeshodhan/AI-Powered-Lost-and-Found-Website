@@ -1,0 +1,165 @@
+/* ===== PAGE WRAPPER ===== */
+.notification-page {
+  min-height: 100vh;
+  background-color: #f7f9fb;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ===== HEADER ===== */
+.notification-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.notification-nav span {
+  margin-left: 20px;
+  font-size: 15px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.notification-nav .active {
+  background-color: #16a34a;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* ===== MAIN CONTENT ===== */
+.notification-container {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+/* ===== TITLE ROW ===== */
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.title-row h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.report-btn {
+  background-color: #22c55e;
+  color: white;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.report-btn:hover {
+  background-color: #16a34a;
+}
+
+/* ===== STATS ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 35px;
+}
+
+.stat-card {
+  background: white;
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card h3 {
+  font-size: 18px;
+  color: #374151;
+}
+
+.stat-card p {
+  font-size: 36px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+
+.stat-lost {
+  border-left: 6px solid #ef4444;
+  color: #ef4444;
+}
+
+.stat-found {
+  border-left: 6px solid #22c55e;
+  color: #22c55e;
+}
+
+.stat-resolved {
+  border-left: 6px solid #6b7280;
+  color: #6b7280;
+}
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tab {
+  padding: 12px 22px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #374151;
+}
+
+.tab.active {
+  background-color: #22c55e;
+  color: white;
+  border-radius: 10px 10px 0 0;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-box {
+  background: white;
+  border-radius: 14px;
+  padding: 60px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.empty-box h3 {
+  font-size: 20px;
+  margin-bottom: 6px;
+  color: #1f2937;
+}
+
+.empty-box p {
+  color: #6b7280;
+}
+
+/* ===== FOOTER ===== */
+.notification-footer {
+  margin-top: 60px;
+  padding: 20px;
+  background: white;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  border-top: 1px solid #e5e7eb;
+}
