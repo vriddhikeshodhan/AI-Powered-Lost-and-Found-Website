@@ -1,13 +1,22 @@
-// import './App.css'; // This file isn't needed for the LandingPage component
-import LandingPage from './components/LandingPage'; // Import your component with a relative path
-//import LostPage from './components/LostPage.jsx';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import LandingPage from "./components/LandingPage";
+import LoginPage from "./components/LoginPage";
+import LostPage from "./components/LostPage";
+import FoundPage from "./components/FoundPage";
+import NotificationPage from "./components/NotificationPage";
 
 function App() {
   return (
-    <div className="App">
-       <LandingPage />
-      {/*<LostPage />*/}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/lost" element={<LostPage />} />
+        <Route path="/found" element={<FoundPage />} />
+        <Route path="/notifications" element={<NotificationPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
