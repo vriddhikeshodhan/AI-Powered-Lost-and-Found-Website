@@ -1,0 +1,232 @@
+/* ========== ROOT VARIABLES ========== */
+:root {
+  --green: #16a34a;
+  --green-light: #22c55e;
+  --green-soft: #ecfdf3;
+  --red-soft: #fee2e2;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --bg-page: #f3f4f6;
+  --border-soft: #e5e7eb;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+/* ========== PAGE WRAPPER ========== */
+.page-wrapper {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: 3rem 4vw 3rem;
+  display: flex;
+  justify-content: center;
+}
+
+.page-inner {
+  max-width: 900px;
+  width: 100%;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* ========== CARD ========== */
+.card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-soft);
+}
+
+/* STOP CENTERING STUFF HERE */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* HEADINGS INSIDE CARD */
+.card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.card-badge {
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* ========== FORM ========== */
+
+/* Make all fields one column */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+  width: 100%;
+}
+
+/* Each form group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* LEFT align everything */
+  width: 100%;
+}
+
+/* Label text left aligned */
+label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  text-align: left;
+  width: 100%;
+}
+
+/* Helper text */
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="date"],
+textarea,
+select {
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  background: #f9fafb;
+  width: 100%;
+  font-size: 0.9rem;
+  outline: none;
+  transition: 0.2s;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+  background: white;
+}
+
+/* File upload field */
+.file-input-wrapper {
+  border: 1px dashed var(--border-soft);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #f9fafb;
+  cursor: pointer;
+  width: 100%;
+}
+
+.file-input-wrapper input {
+  display: none;
+}
+
+.file-input-wrapper strong {
+  color: var(--green);
+}
+
+/* ========== FOOTER BUTTONS ========== */
+.card-footer {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.card-footer-left {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.8rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.65rem 1.4rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--green);
+  color: white;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.3);
+}
+
+.btn-primary:hover {
+  background: var(--green-light);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
+
+.btn-ghost:hover {
+  background: #f9fafb;
+}
+
+/* Success banner */
+.success-banner {
+  margin-top: 1.2rem;
+  background: var(--green-soft);
+  color: #166534;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  display: none;
+}
+
+.success-banner.show {
+  display: block;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .page-wrapper {
+    padding: 1.5rem;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
+}
+
