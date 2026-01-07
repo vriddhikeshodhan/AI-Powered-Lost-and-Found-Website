@@ -238,7 +238,7 @@ const PageStyler = () => {
     };
   }, []); // Empty dependency array ensures this runs only once on mount
 
-  return null;
+  return null; // This component doesn't render any visible JSX
 };
 
 // --- Logo SVG Component ---
@@ -259,7 +259,7 @@ const LogoIcon = () => (
 );
 
 // --- Main Landing Page Component ---
-const LandingPage = () => {
+const LandingPage = ({ username }) => {
   const navigate = useNavigate();
   return (
     <div className="landing-container">
@@ -269,44 +269,45 @@ const LandingPage = () => {
           <LogoIcon />
           <span>Lost & Found</span>
         </div>
-        <nav>
+
+        <nav style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <span style={{ fontWeight: 600, color: "#14532d" }}>
+            Hi, {username}
+          </span>
           <button 
             className="signin-btn"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/notifications")}
           >
-            Sign In
+            My Profile
           </button>
         </nav>
       </header>
 
       {/* --- Main Content Section --- */}
       <main className="landing-main">
-        {/* --- Added Hero Text --- */}
         <div className="hero-text-container">
           <h1 className="hero-title">Welcome to Lost & Found</h1>
           <p className="hero-subtitle">
             The first online meeting point between who's looking for a lost item and who's found it through AI.
           </p>
         </div>
-        
-        {/* --- Action Buttons --- */}
+
         <div className="action-buttons-container">
           <a 
             className="action-btn lost-btn"
-            onClick={() => navigate("/login")}
-          >
+            onClick={() => navigate("/lost")}
+            >
             Lost?
           </a>
           <a 
             className="action-btn found-btn"
-            onClick={() => navigate("/login")}
-          >
+            onClick={() => navigate("/found")}
+            >
             Found?
           </a>
         </div>
       </main>
 
-      {/* --- Footer Section --- */}
       <footer className="landing-footer">
         <div className="contact-info">
           Contact us

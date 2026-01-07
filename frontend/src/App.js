@@ -5,6 +5,8 @@ import LoginPage from "./components/LoginPage";
 import LostPage from "./components/LostPage";
 import FoundPage from "./components/FoundPage";
 import NotificationPage from "./components/NotificationPage";
+import UserLandingPage from "./components/UserLandingPage";
+import TopMatchesPage from "./components/TopMatchesPage";
 
 function App() {
   return (
@@ -14,7 +16,9 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/lost" element={<LostPage />} />
         <Route path="/found" element={<FoundPage />} />
+        <Route path="/userlanding" element={<UserLandingPage />} />
         <Route path="/notifications" element={<NotificationPage />} />
+        <Route path="/topmatches" element={<TopMatchesPage />} />
       </Routes>
     </BrowserRouter>
   );

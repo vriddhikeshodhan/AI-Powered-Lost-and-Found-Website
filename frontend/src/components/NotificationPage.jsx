@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import "./NotificationPage.css";
-
+import { useNavigate } from "react-router-dom";
 const NotificationPage = () => {
   const [activeTab, setActiveTab] = useState("lost");
-
+  const navigate = useNavigate();
   const lostItems = [];
   const foundItems = [];
 
@@ -20,8 +20,11 @@ const NotificationPage = () => {
         </div>
 
         <div className="notification-nav">
-          <span>Home</span>
-          <span>Report New Item</span>
+          <button
+          onClick={() => navigate("/userlanding")}
+          >
+          Home
+          </button>
           <span className="active">Profile</span>
         </div>
       </header>
@@ -31,7 +34,6 @@ const NotificationPage = () => {
         {/* TITLE ROW */}
         <div className="title-row">
           <h1>My Items</h1>
-          <button className="report-btn">+ Report New Item</button>
         </div>
 
         {/* STATS */}

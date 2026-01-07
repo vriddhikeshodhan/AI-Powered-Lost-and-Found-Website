@@ -1,7 +1,9 @@
 // frontend/src/components/LostPage.jsx
 
 import React, { useState } from 'react';
-import './LostPage.css'; // Imports the dedicated styling
+import './LostPage.css';
+import AIMatchingModal from "./AIMatchingModal";
+import { useNavigate } from "react-router-dom";
 
 function LostPage() {
   // Initialize state to track all form inputs
@@ -13,6 +15,9 @@ function LostPage() {
     lastKnownLocation: '',
     photos: null,
   });
+
+  const [aiStatus, setAiStatus] = useState(null);
+  const navigate = useNavigate();
 
   // Handler for updating state when inputs change
   const handleChange = (e) => {
@@ -28,7 +33,14 @@ function LostPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Lost Item Data Submitted:', formData);
-    // TODO: Integrate with the backend API
+
+    setAiStatus("loading");
+
+    // Mock AI processing
+    setTimeout(() => {
+      const matchFound = true; // toggle for testing
+      setAiStatus(matchFound ? "match-found" : "no-match");
+    }, 3000);
   };
   
   // Handler for the Cancel button
@@ -130,6 +142,12 @@ function LostPage() {
           </div>
         </form>
       </main>
+
+      <AIMatchingModal
+        status={aiStatus}
+        onClose={() => setAiStatus(null)}
+        onViewMatches={() => navigate("/topmatches")}
+      />
     </div>
   );
 }
