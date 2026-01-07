@@ -1,0 +1,176 @@
+/* frontend/src/components/LostPage.css */
+
+/* --- 1. Global Page Background --- */
+.lost-page-container {
+    background-color: #f4f7f6; /* Light body background */
+    min-height: 100vh;
+}
+
+/* --- 2. Navbar/Header Styling --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 40px;
+    background-color: #fff; /* White background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for a clean look */
+    color: #333;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4CAF50; /* Primary Green */
+    display: flex;
+    align-items: center;
+}
+
+.logo-icon {
+    margin-right: 8px;
+    font-size: 20px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #555;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: #4CAF50;
+}
+
+/* Green Button Style */
+.green-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+
+.green-btn:hover {
+    background-color: #45a049;
+}
+
+
+/* --- 3. Form Layout and Input Styles --- */
+.main-content {
+    max-width: 800px;
+    margin: 40px auto; /* Centers the form block horizontally */
+    padding: 30px;
+    background-color: #fff; /* White background for the form block */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Lifts the form off the background */
+}
+
+/* --- Centering the Form Page Header --- */
+.form-page-header {
+    text-align: center; /* Centers the H2 and tagline */
+    margin-bottom: 30px;
+}
+
+.form-page-header h2 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: none; 
+    padding-bottom: 0;
+}
+
+.form-header-tagline {
+    font-size: 16px;
+    color: #666;
+    max-width: 600px;
+    margin: 0 auto 20px auto;
+}
+
+/* --- Form Input Styling --- */
+.lost-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #444;
+}
+
+.form-input,
+.form-input-file,
+.lost-form select,
+.lost-form textarea {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box; 
+}
+
+.form-input:focus,
+.lost-form select:focus,
+.lost-form textarea:focus {
+    border-color: #4CAF50;
+    outline: none;
+}
+
+/* Styling for Input Taglines and Disclaimers */
+.input-tagline {
+    font-size: 13px;
+    color: #888;
+    margin-top: 5px;
+    padding-left: 5px;
+}
+
+.submission-disclaimer {
+    font-size: 14px;
+    color: #777;
+    margin-top: 25px;
+    text-align: center; 
+}
+
+/* --- Form Buttons Layout --- */
+.form-buttons {
+    display: flex;
+    justify-content: flex-end; /* Aligns buttons to the right */
+    gap: 15px; 
+    margin-top: 25px;
+}
+
+.cancel-btn {
+    background-color: #f0f0f0;
+    color: #555;
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.cancel-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* Ensure the submit button doesn't have aligning issues */
+.submit-btn {
+    align-self: unset; 
+    margin-top: 0; 
+}
