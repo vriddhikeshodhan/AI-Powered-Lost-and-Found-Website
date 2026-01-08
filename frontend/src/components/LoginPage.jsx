@@ -55,7 +55,8 @@ export default function LoginPage() {
 
         <p style={styles.signupText}>
           Don’t have an account?{" "}
-          <a href="#!" style={styles.link}>
+          <a 
+            style={styles.link} onClick={() => navigate("/signup")}>
             Sign Up
           </a>
         </p>

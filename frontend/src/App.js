@@ -7,6 +7,7 @@ import FoundPage from "./components/FoundPage";
 import NotificationPage from "./components/NotificationPage";
 import UserLandingPage from "./components/UserLandingPage";
 import TopMatchesPage from "./components/TopMatchesPage";
+import SignUpPage from "./components/SignUpPage";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/userlanding" element={<UserLandingPage />} />
         <Route path="/notifications" element={<NotificationPage />} />
         <Route path="/topmatches" element={<TopMatchesPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
       </Routes>
     </BrowserRouter>
   );

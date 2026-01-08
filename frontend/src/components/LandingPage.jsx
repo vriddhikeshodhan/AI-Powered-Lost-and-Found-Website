@@ -2,10 +2,8 @@ import React, { useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 const PageStyler = () => {
   useLayoutEffect(() => {
-    // Create the <style> tag
     const styleElement = document.createElement('style');
     
-    // Define all our plain CSS rules
     const cssRules = `
       /* --- Global Styles --- */
       body {
@@ -226,17 +224,14 @@ const PageStyler = () => {
       }
     `;
 
-    // Add the CSS rules to the <style> element
     styleElement.innerHTML = cssRules;
     
-    // Append the <style> element to the document's <head>
     document.head.appendChild(styleElement);
 
-    // Cleanup function to remove the style when the component unmounts
     return () => {
       document.head.removeChild(styleElement);
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
   return null;
 };
@@ -317,7 +312,6 @@ const LandingPage = () => {
 };
 
 // --- Main App Component ---
-// This is the default export that renders our page.
 export default function App() {
   return (
     <>
