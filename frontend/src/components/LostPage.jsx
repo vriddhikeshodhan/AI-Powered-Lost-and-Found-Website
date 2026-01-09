@@ -5,8 +5,7 @@ import './LostPage.css';
 import AIMatchingModal from "./AIMatchingModal";
 import { useNavigate } from "react-router-dom";
 
-function LostPage() {
-  // Initialize state to track all form inputs
+function LostPage() {   //defines functional component LostPage
   const [formData, setFormData] = useState({
     itemType: '',
     title: '',
@@ -16,10 +15,10 @@ function LostPage() {
     photos: null,
   });
 
-  const [aiStatus, setAiStatus] = useState(null);
+  const [aiStatus, setAiStatus] = useState(null);//stores the current AI matching state
   const navigate = useNavigate();
 
-  // Handler for updating state when inputs change
+  // This function runs every time the user types or selects something.
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
     setFormData(prevData => ({
@@ -31,14 +30,14 @@ function LostPage() {
 
   // Handler for form submission
   const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Lost Item Data Submitted:', formData);
+    e.preventDefault();//Prevents page refresh   
+    console.log('Lost Item Data Submitted:', formData);//print to console
 
     setAiStatus("loading");
 
     // Mock AI processing
-    setTimeout(() => {
-      const matchFound = true; // toggle for testing
+    setTimeout(() => {//waits 3 seconds to simulate AI processing
+      const matchFound = true;
       setAiStatus(matchFound ? "match-found" : "no-match");
     }, 3000);
   };
@@ -75,7 +74,7 @@ function LostPage() {
       {/* --- MAIN CONTENT / FORM --- */}
       <main className="main-content">
         
-        {/* FORM HEADER WITH CENTERING AND TAGLINES */}
+        {/* FORM HEADER */}
         <div className="form-page-header">
           <h2>Report a Lost Item</h2>
           <p className="form-header-tagline">
@@ -144,12 +143,12 @@ function LostPage() {
       </main>
 
       <AIMatchingModal
-        status={aiStatus}
-        onClose={() => setAiStatus(null)}
+        status={aiStatus} //loading, match-found, no-match
+        onClose={() => setAiStatus(null)} //reset status on close
         onViewMatches={() => navigate("/topmatches")}
       />
     </div>
   );
 }
 
-export default LostPage;
+export default LostPage;//lost page component is made available for rest of website to use
