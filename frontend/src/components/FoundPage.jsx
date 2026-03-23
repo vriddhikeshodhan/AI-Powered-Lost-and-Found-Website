@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+/*import React, { useState } from "react";
 import "./FoundPage.css";
 
 export default function FoundPage() {
@@ -13,7 +13,7 @@ export default function FoundPage() {
   return (
     <div className="page-wrapper">
       <div className="page-inner">
-        {/* Page Header */}
+        
         <div className="page-header">
           <h1 className="page-title">Report a Found Item</h1>
           <p className="page-subtitle">
@@ -22,7 +22,7 @@ export default function FoundPage() {
           </p>
         </div>
 
-        {/* Card Section */}
+        
         <section className="card">
           <div className="card-header">
             <h2 className="card-title">Found Item Details</h2>
@@ -31,7 +31,7 @@ export default function FoundPage() {
 
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
-              {/* Item Type */}
+              
               <div className="form-group">
                 <label>Item type</label>
                 <select required>
@@ -45,7 +45,7 @@ export default function FoundPage() {
                 </select>
               </div>
 
-              {/* Title */}
+              
               <div className="form-group">
                 <label>Item title</label>
                 <input
@@ -55,7 +55,7 @@ export default function FoundPage() {
                 />
               </div>
 
-              {/* Description */}
+              
               <div className="form-group">
                 <label>Description</label>
                 <textarea
@@ -67,13 +67,13 @@ export default function FoundPage() {
                 </p>
               </div>
 
-              {/* Date Found */}
+              
               <div className="form-group">
                 <label>Date found</label>
                 <input type="date" required />
               </div>
 
-              {/* Location */}
+              
               <div className="form-group">
                 <label>Where did you find it?</label>
                 <input
@@ -83,7 +83,7 @@ export default function FoundPage() {
                 />
               </div>
 
-              {/* Photo Upload */}
+              
               <div className="form-group">
                 <label>Item photo</label>
                 <label className="file-input-wrapper">
@@ -96,7 +96,7 @@ export default function FoundPage() {
               </div>
             </div>
 
-            {/* Footer Buttons */}
+            
             <div className="card-footer">
               <div className="card-footer-left">
                 By submitting, you confirm this is an honest report.
@@ -117,7 +117,7 @@ export default function FoundPage() {
               </div>
             </div>
 
-            {/* Success Banner */}
+            
             <div className={`success-banner ${success ? "show" : ""}`}>
               ✅ Found item submitted! (Mock message — connect backend later)
             </div>
@@ -127,4 +127,172 @@ export default function FoundPage() {
     </div>
   );
 }
+*/
 
+import React, { useState, useEffect } from "react";
+import "./FoundPage.css";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
+
+export default function FoundPage() {
+    const [categories, setCategories] = useState([]);
+    const [success, setSuccess]       = useState(false);
+    const [error, setError]           = useState("");
+    const [loading, setLoading]       = useState(false);
+    const navigate = useNavigate();
+
+    const [formData, setFormData] = useState({
+        title: "",
+        description: "",
+        category_id: "",
+        location: "",
+        photo: null,
+    });
+
+    // Load categories on mount
+    useEffect(() => {
+        api.get("/items/categories")
+            .then(res => setCategories(res.data.categories))
+            .catch(() => setCategories([]));
+    }, []);
+
+    const handleChange = (e) => {
+        const { name, value, type, files } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === "file" ? files[0] : value
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+
+        try {
+            const data = new FormData();
+            data.append("title",       formData.title);
+            data.append("description", formData.description);
+            data.append("category_id", formData.category_id);
+            data.append("location",    formData.location);
+            if (formData.photo) data.append("image", formData.photo);
+
+            await api.post("/items/found", data, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            setSuccess(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+
+        } catch (err) {
+            const msg = err.response?.data?.error || "Failed to submit. Please try again.";
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="page-wrapper">
+            <div className="page-inner">
+                <div className="page-header">
+                    <h1 className="page-title">Report a Found Item</h1>
+                    <p className="page-subtitle">
+                        Tell us what you found and where. We'll try to match it with people who reported similar lost items.
+                    </p>
+                </div>
+
+                <section className="card">
+                    <div className="card-header">
+                        <h2 className="card-title">Found Item Details</h2>
+                    </div>
+
+                    {/* Success Banner */}
+                    {success && (
+                        <div style={{ background:"#f0fdf4", border:"1px solid #22c55e", borderRadius:"8px", padding:"16px", marginBottom:"20px", textAlign:"center" }}>
+                            <p style={{ color:"#15803d", fontWeight:"600", marginBottom:"8px" }}>✅ Found item submitted successfully!</p>
+                            <p style={{ color:"#166534", fontSize:"14px", marginBottom:"12px" }}>
+                                Our AI is searching for matching lost items in the background. The owner will be notified if a match is found.
+                            </p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => navigate("/userlanding")}
+                            >
+                                Back to Home
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Error */}
+                    {error && (
+                        <div style={{ background:"#fef2f2", color:"#dc2626", border:"1px solid #fecaca", borderRadius:"6px", padding:"10px", marginBottom:"16px", fontSize:"14px" }}>
+                            {error}
+                        </div>
+                    )}
+
+                    {!success && (
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-grid">
+                                {/* Category */}
+                                <div className="form-group">
+                                    <label>Item category</label>
+                                    <select name="category_id" value={formData.category_id} onChange={handleChange} required>
+                                        <option value="">Select category</option>
+                                        {categories.map(cat => (
+                                            <option key={cat.category_id} value={cat.category_id}>
+                                                {cat.category_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Title */}
+                                <div className="form-group">
+                                    <label>Item title</label>
+                                    <input type="text" name="title" placeholder="Example: Black Lenovo laptop" value={formData.title} onChange={handleChange} required />
+                                </div>
+
+                                {/* Description */}
+                                <div className="form-group">
+                                    <label>Description</label>
+                                    <textarea name="description" placeholder="Color, brand, stickers, scratches, special marks, etc." value={formData.description} onChange={handleChange} required />
+                                    <p className="hint">Add anything that makes this item easy to recognize.</p>
+                                </div>
+
+                                {/* Location */}
+                                <div className="form-group">
+                                    <label>Where did you find it?</label>
+                                    <input type="text" name="location" placeholder="Example: Library, 2nd floor, near window table" value={formData.location} onChange={handleChange} required />
+                                </div>
+
+                                {/* Photo */}
+                                <div className="form-group">
+                                    <label>Item photo (required for found items)</label>
+                                    <label className="file-input-wrapper">
+                                        <input type="file" name="photo" accept="image/*" onChange={handleChange} required />
+                                        <span><strong>Click to upload</strong> or drag a photo</span>
+                                    </label>
+                                    <p className="hint">A clear photo significantly increases matching accuracy.</p>
+                                </div>
+                            </div>
+
+                            <div className="card-footer">
+                                <div className="card-footer-left">
+                                    By submitting, you confirm this is an honest report.
+                                </div>
+                                <div className="btn-row">
+                                    <button type="button" className="btn btn-ghost" onClick={() => navigate("/userlanding")}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                                        {loading ? "Submitting..." : "Submit Found Item"}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    )}
+                </section>
+            </div>
+        </div>
+    );
+}

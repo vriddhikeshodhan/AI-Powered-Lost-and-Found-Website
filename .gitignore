@@ -1,0 +1,21 @@
+# Environment files — NEVER commit these
+backend/.env
+ai_service/.env
+
+# Dependencies
+backend/node_modules/
+frontend/node_modules/
+node_modules/
+ai_service/__pycache__/
+ai_service/.venv/
+ai_service/**/*.pyc
+
+# Uploads — don't commit user files
+uploads/*
+backend/uploads/*
+!uploads/.gitkeep
+!backend/uploads/.gitkeep
+
+# Misc
+.DS_Store
+*.log
