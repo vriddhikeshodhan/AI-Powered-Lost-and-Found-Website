@@ -1,22 +1,44 @@
-const express        = require("express");
-const router         = express.Router();
-const itemController = require("../../controllers/item.controller");
-const authMiddleware = require("../../middleware/auth.middleware");
-const upload         = require("../../middleware/upload.middleware");
+const express = require("express");
+const router  = express.Router();
 
-// Public — no auth needed
-router.get("/categories", itemController.getCategories);
+const {
+    reportFoundItem,
+    reportLostItem,
+    getMyItems,
+    getItemById,
+    getMatchesForItem,
+    resolveItem,
+    submitMatchFeedback,
+    deleteItem,
+    getCategories,
+} = require("../../controllers/item.controller");
 
-// Protected — require JWT
-router.post("/lost",  authMiddleware, upload.single("image"), itemController.reportLostItem);
-router.post("/found", authMiddleware, upload.single("image"), itemController.reportFoundItem);
+const { verifyToken }        = require("../../middleware/auth.middleware");
+const upload       = require("../../middleware/upload.middleware");
+const { itemSubmissionLimiter } = require("../../middleware/rateLimit.middleware");
 
-router.get("/my-items", authMiddleware, itemController.getMyItems);
-router.get("/:itemId",  authMiddleware, itemController.getItemById);
+// Public
+router.get("/categories", getCategories);
 
-router.get(   "/:itemId/matches",                   authMiddleware, itemController.getMatchesForItem);
-router.patch( "/:itemId/resolve",                   authMiddleware, itemController.resolveItem);
-router.patch( "/:itemId/match/:matchId/feedback",   authMiddleware, itemController.submitMatchFeedback);
-router.delete("/:itemId",                           authMiddleware, itemController.deleteItem);
+router.post("/lost",
+    verifyToken,
+    itemSubmissionLimiter, 
+    upload.single("image"),
+    reportLostItem
+);
+
+router.post("/found",
+    verifyToken,
+    itemSubmissionLimiter,   
+    upload.single("image"),
+    reportFoundItem
+);
+
+router.get( "/my-items",                    verifyToken, getMyItems);
+router.get( "/:itemId",                     verifyToken, getItemById);
+router.get( "/:itemId/matches",             verifyToken, getMatchesForItem);
+router.patch("/:itemId/resolve",            verifyToken, resolveItem);
+router.patch("/:itemId/match/:matchId/feedback", verifyToken, submitMatchFeedback);
+router.delete("/:itemId",                   verifyToken, deleteItem);
 
 module.exports = router;

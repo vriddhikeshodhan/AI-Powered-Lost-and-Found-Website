@@ -1,176 +1,269 @@
-/* frontend/src/components/LostPage.css */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg:        #07090f;
+  --surface:   #0c1018;
+  --card:      #111826;
+  --border:    rgba(255,255,255,0.07);
+  --border-hi: rgba(255,255,255,0.13);
+  --green:     #00e07a;
+  --green-dim: rgba(0,224,122,0.1);
+  --text:      #dde4f0;
+  --muted:     #7a8499;
+  --font:      'Plus Jakarta Sans', system-ui, sans-serif;
+  --display:   'Syne', system-ui, sans-serif;
+  --radius:    12px;
+  --radius-lg: 18px;
+}
+
+* { box-sizing: border-box; }
 
 /* --- 1. Global Page Background --- */
 .lost-page-container {
-    background-color: #f4f7f6; /* Light body background */
-    min-height: 100vh;
+  background-color: var(--bg);
+  min-height: 100vh;
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
 /* --- 2. Navbar/Header Styling --- */
 .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 40px;
-    background-color: #fff; /* White background */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for a clean look */
-    color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 2rem;
+  background: rgba(12,16,24,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .logo {
-    font-size: 24px;
-    font-weight: bold;
-    color: #4CAF50; /* Primary Green */
-    display: flex;
-    align-items: center;
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.02em;
 }
 
-.logo-icon {
-    margin-right: 8px;
-    font-size: 20px;
+.logo::before {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none'%3E%3Ccircle cx='12' cy='12' r='8' stroke='%2300e07a' stroke-width='2.2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='%2300e07a' opacity='.35'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='%2300e07a'/%3E%3Cline x1='18.5' y1='18.5' x2='26' y2='26' stroke='%2300e07a' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
 }
+
+.logo-icon { display: none; } /* logo is handled via ::before */
 
 .nav-links {
-    display: flex;
-    gap: 20px;
-    align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
 }
 
 .nav-link {
-    text-decoration: none;
-    color: #555;
-    transition: color 0.2s;
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.86rem;
+  transition: color 0.2s;
 }
 
-.nav-link:hover {
-    color: #4CAF50;
-}
+.nav-link:hover { color: var(--text); }
 
 /* Green Button Style */
 .green-btn {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background-color 0.3s;
+  background: var(--green);
+  color: #030a04;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: var(--font);
+  font-size: 0.84rem;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
 }
 
 .green-btn:hover {
-    background-color: #45a049;
+  background: #00ff8a;
+  box-shadow: 0 0 20px rgba(0,224,122,0.3);
 }
-
 
 /* --- 3. Form Layout and Input Styles --- */
 .main-content {
-    max-width: 800px;
-    margin: 40px auto; /* Centers the form block horizontally */
-    padding: 30px;
-    background-color: #fff; /* White background for the form block */
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Lifts the form off the background */
+  max-width: 720px;
+  margin: 2.5rem auto;
+  padding: 2rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.45);
 }
 
 /* --- Centering the Form Page Header --- */
 .form-page-header {
-    text-align: center; /* Centers the H2 and tagline */
-    margin-bottom: 30px;
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .form-page-header h2 {
-    font-size: 28px;
-    color: #333;
-    margin-bottom: 10px;
-    border-bottom: none; 
-    padding-bottom: 0;
+  font-family: var(--display);
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .form-header-tagline {
-    font-size: 16px;
-    color: #666;
-    max-width: 600px;
-    margin: 0 auto 20px auto;
+  font-size: 0.9rem;
+  color: var(--muted);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.5;
 }
 
 /* --- Form Input Styling --- */
 .lost-form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-    margin-bottom: 6px;
-    font-weight: 600;
-    color: #444;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .form-input,
 .form-input-file,
 .lost-form select,
 .lost-form textarea {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 16px;
-    width: 100%;
-    box-sizing: border-box; 
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
 }
+
+.lost-form textarea { min-height: 90px; resize: vertical; }
+
+.lost-form select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8499' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.lost-form select option { background: var(--card); color: var(--text); }
 
 .form-input:focus,
 .lost-form select:focus,
 .lost-form textarea:focus {
-    border-color: #4CAF50;
-    outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(0,224,122,0.1);
+  background: var(--card);
 }
+
+.form-input::placeholder,
+.lost-form textarea::placeholder { color: var(--muted); opacity: 0.5; }
 
 /* Styling for Input Taglines and Disclaimers */
 .input-tagline {
-    font-size: 13px;
-    color: #888;
-    margin-top: 5px;
-    padding-left: 5px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+  opacity: 0.7;
 }
 
 .submission-disclaimer {
-    font-size: 14px;
-    color: #777;
-    margin-top: 25px;
-    text-align: center; 
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 1.5rem;
+  text-align: center;
+  opacity: 0.8;
 }
 
 /* --- Form Buttons Layout --- */
 .form-buttons {
-    display: flex;
-    justify-content: flex-end; /* Aligns buttons to the right */
-    gap: 15px; 
-    margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
 }
 
 .cancel-btn {
-    background-color: #f0f0f0;
-    color: #555;
-    border: 1px solid #ccc;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background-color 0.2s;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border-hi);
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: var(--font);
+  font-size: 0.88rem;
+  transition: all 0.2s;
 }
 
 .cancel-btn:hover {
-    background-color: #e0e0e0;
+  background: var(--surface);
+  color: var(--text);
 }
 
-/* Ensure the submit button doesn't have aligning issues */
 .submit-btn {
-    align-self: unset; 
-    margin-top: 0; 
+  background: var(--green);
+  color: #030a04;
+  border: none;
+  padding: 0.6rem 1.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: var(--font);
+  font-size: 0.88rem;
+  transition: all 0.2s;
+  align-self: unset;
+  margin-top: 0;
+}
+
+.submit-btn:hover {
+  background: #00ff8a;
+  box-shadow: 0 4px 20px rgba(0,224,122,0.3);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .main-content { margin: 1.5rem 1rem; padding: 1.25rem; }
+  .navbar { padding: 0.8rem 1rem; }
 }

@@ -21,11 +21,17 @@ exports.registerUser = async (req, res) => {
     try {
         // Check if email already exists
         const existing = await pool.query(
-            "SELECT user_id FROM users WHERE email = $1",
+            "SELECT user_id, is_verified FROM users WHERE email = $1",
             [email]
         );
         if (existing.rows.length > 0) {
-            return res.status(409).json({ message: "Email already registered" });
+            if (existing.rows[0].is_verified) {
+                // Fully verified account — block registration
+                return res.status(409).json({ message: "Email already registered" });
+            } else {
+                // Registered but never verified — delete and allow fresh registration
+                await pool.query("DELETE FROM users WHERE email = $1", [email]);
+            }
         }
 
         // Hash password
@@ -145,6 +151,7 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign(
             {
                 user_id: user.user_id,
+                email:   user.email,
                 role_id: user.role_id
             },
             process.env.JWT_SECRET,

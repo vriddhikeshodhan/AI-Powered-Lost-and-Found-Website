@@ -16,7 +16,8 @@ const GlobalChatBox = ({ chat, onClose }) => {
     const socketRef                 = useRef(null);
     const messagesEndRef            = useRef(null);
 
-    const { matchId, receiverId, receiverName } = chat;
+    // CHANGED: also destructure hiddenDetails from chat
+    const { matchId, receiverId, receiverName, hiddenDetails } = chat;
 
     // Connect socket + load history whenever a chat is opened
     useEffect(() => {
@@ -54,7 +55,7 @@ const GlobalChatBox = ({ chat, onClose }) => {
             sock.disconnect();
             socketRef.current = null;
         };
-    }, [matchId]);  // re-runs only when a different chat is opened
+    }, [matchId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -117,11 +118,44 @@ const GlobalChatBox = ({ chat, onClose }) => {
                 display: "flex", flexDirection: "column", gap: "0.6rem",
                 overflowY: "auto", background: "#f0fdf4"
             }}>
-                {messages.length === 0 && (
+                {/* CHANGED: Ownership tip banner — only shown to lost item owner before first message */}
+                {hiddenDetails && messages.length === 0 && (
+                    <div style={{
+                        background: "#fefce8",
+                        border: "1.5px solid #fde047",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                        fontSize: "13px",
+                        color: "#713f12",
+                    }}>
+                        <div style={{ fontWeight: 700, marginBottom: "6px", color: "#854d0e" }}>
+                            🔑 Prove your ownership
+                        </div>
+                        <p style={{
+                            margin: "0 0 6px",
+                            fontStyle: "italic",
+                            fontWeight: 600,
+                            background: "#fef9c3",
+                            borderRadius: "6px",
+                            padding: "6px 10px",
+                            wordBreak: "break-word",
+                        }}>
+                            "{hiddenDetails}"
+                        </p>
+                        <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.5, fontSize: "12px" }}>
+                            Mention this distinguishing detail to the finder to confirm it's yours.
+                            The finder has not seen this — only you know it.
+                        </p>
+                    </div>
+                )}
+
+                {/* Empty state — no messages and no hidden detail tip */}
+                {messages.length === 0 && !hiddenDetails && (
                     <p style={{ textAlign: "center", color: "#9ca3af", fontSize: "0.85rem", marginTop: "1rem" }}>
                         No messages yet. Say hello!
                     </p>
                 )}
+
                 {messages.map((msg) => (
                     <div key={msg.message_id} style={{
                         maxWidth: "75%",
@@ -180,12 +214,12 @@ const GlobalChatBox = ({ chat, onClose }) => {
     );
 };
 
-/* ── Provider ───────────────────────────────── */
 export const ChatProvider = ({ children }) => {
-    const [activeChat, setActiveChat] = useState(null); // { matchId, receiverId, receiverName }
+    const [activeChat, setActiveChat] = useState(null);
 
-    const openChat = ({ matchId, receiverId, receiverName }) => {
-        setActiveChat({ matchId, receiverId, receiverName });
+    // CHANGED: openChat now accepts and stores hiddenDetails (defaults to null)
+    const openChat = ({ matchId, receiverId, receiverName, hiddenDetails = null }) => {
+        setActiveChat({ matchId, receiverId, receiverName, hiddenDetails });
     };
 
     const closeChat = () => {

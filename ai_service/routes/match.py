@@ -1,14 +1,30 @@
+"""
+routes/match.py — Matching endpoints
+
+  POST /ai/match   — new FOUND item → find matching LOST items
+  POST /ai/rematch — new LOST item  → find matching FOUND items
+
+Cross-modal scoring added:
+  For each candidate pair, we now compute THREE similarity signals:
+  1. text_sim        = cosine(lost.text_embedding,       found.text_embedding)       SBERT 768-dim
+  2. image_sim       = cosine(lost.image_embedding,      found.image_embedding)      CLIP  512-dim
+  3. cross_modal_sim = cosine(lost.clip_text_embedding,  found.image_embedding)      CLIP  512-dim cross-modal
+
+  final_score = 0.50×text + 0.30×cross_modal + 0.20×image
+  (normalized if any signal is missing)
+"""
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from models.embedder import compute_combined_score
+from models.embedder import compute_cosine_similarity, compute_combined_score
 from db import get_connection
 from config import (
-    TEXT_SIMILARITY_THRESHOLD,
+    COMBINED_THRESHOLD,
     TEXT_WEIGHT,
     IMAGE_WEIGHT,
+    CROSS_MODAL_WEIGHT,
     TOP_K
 )
-import numpy as np
 import traceback
 
 router = APIRouter()
@@ -18,82 +34,62 @@ class MatchRequest(BaseModel):
     found_item_id: int
 
 
-# ─────────────────────────────────────────────
-# Shared helper — cosine similarity from DB vectors
-# pgvector returns numpy arrays or list-like objects
-# ─────────────────────────────────────────────
-def compute_cosine_similarity_from_db(vec1, vec2) -> float:
-    try:
-        a = np.array(list(vec1), dtype=np.float32)
-        b = np.array(list(vec2), dtype=np.float32)
-
-        norm_a = np.linalg.norm(a)
-        norm_b = np.linalg.norm(b)
-
-        if norm_a == 0 or norm_b == 0:
-            return 0.0
-
-        return float(np.dot(a, b) / (norm_a * norm_b))
-    except Exception as e:
-        print(f"[Similarity] Computation failed: {e}")
-        return 0.0
-
-
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # POST /ai/match
-# Called when a new FOUND item is reported.
-# Finds matching LOST items.
-# ─────────────────────────────────────────────
+# Triggered when a new FOUND item is submitted.
+# Finds the best matching LOST items.
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post("/match")
 async def find_matches(request: MatchRequest):
-    conn = get_connection()
+    conn   = get_connection()
     cursor = conn.cursor()
 
     try:
-        # Step 1: Load the found item
+        # Step 1 — Load the found item with all three embedding columns
         cursor.execute(
             """
             SELECT item_id, title, description, category_id,
-                   text_embedding, image_embedding, user_id
+                   text_embedding, image_embedding, clip_text_embedding, user_id
             FROM items
             WHERE item_id = %s
-              AND type = 'Found'::item_type_enum
+              AND type     = 'Found'::item_type_enum
               AND is_active = TRUE
             """,
             (request.found_item_id,)
         )
-        found_item = cursor.fetchone()
+        found = cursor.fetchone()
 
-        if not found_item:
+        if not found:
             raise HTTPException(
                 status_code=404,
                 detail=f"Found item {request.found_item_id} not found"
             )
 
-        found_text_emb  = found_item['text_embedding']
-        found_image_emb = found_item['image_embedding']
+        found_text_emb        = found['text_embedding']
+        found_image_emb       = found['image_embedding']
+        found_clip_text_emb   = found['clip_text_embedding']  # may be None if item has no text
 
         if found_text_emb is None and found_image_emb is None:
             raise HTTPException(
                 status_code=400,
-                detail="Found item has no embeddings. Run /embed/text first."
+                detail="Found item has no embeddings yet"
             )
 
-        # Step 2: Load candidate lost items
-        # Same category, different user, must have text embedding
+        # Step 2 — Load candidate LOST items (same category, different user)
         cursor.execute(
             """
             SELECT item_id, title, description, user_id,
-                   text_embedding, image_embedding
+                   text_embedding, image_embedding, clip_text_embedding
             FROM items
-            WHERE type = 'Lost'::item_type_enum
-              AND is_active = TRUE
-              AND status = 'active'
+            WHERE type        = 'Lost'::item_type_enum
+              AND is_active   = TRUE
+              AND status      = 'active'
               AND category_id = %s
-              AND user_id != %s
+              AND user_id    != %s
               AND text_embedding IS NOT NULL
             """,
-            (found_item['category_id'], found_item['user_id'])
+            (found['category_id'], found['user_id'])
         )
         lost_items = cursor.fetchall()
 
@@ -101,51 +97,59 @@ async def find_matches(request: MatchRequest):
             return {
                 "found_item_id": request.found_item_id,
                 "matches": [],
-                "message": "No candidate lost items found in same category"
+                "message": "No candidate lost items in this category"
             }
 
-        # Step 3: Score each candidate
-        scored_matches = []
+        # Step 3 — Score each candidate with all three signals
+        scored = []
 
-        for lost_item in lost_items:
-            lost_text_emb  = lost_item['text_embedding']
-            lost_image_emb = lost_item['image_embedding']
+        for lost in lost_items:
+            lost_text_emb       = lost['text_embedding']
+            lost_image_emb      = lost['image_embedding']
+            lost_clip_text_emb  = lost['clip_text_embedding']
 
-            text_sim = None
-            if found_text_emb is not None and lost_text_emb is not None:
-                text_sim = compute_cosine_similarity_from_db(
-                    found_text_emb, lost_text_emb
-                )
+            # Signal 1: SBERT text ↔ SBERT text  (768-dim)
+            text_sim = compute_cosine_similarity(found_text_emb, lost_text_emb)
 
+            # Signal 2: CLIP image ↔ CLIP image  (512-dim)
             image_sim = None
             if found_image_emb is not None and lost_image_emb is not None:
-                image_sim = compute_cosine_similarity_from_db(
-                    found_image_emb, lost_image_emb
-                )
+                image_sim = compute_cosine_similarity(found_image_emb, lost_image_emb)
+
+            # Signal 3: CLIP text (lost) ↔ CLIP image (found)  — cross-modal
+            # The lost item owner described what they lost in text.
+            # We compare that text description directly against the found item's photo.
+            cross_modal_sim = None
+            if lost_clip_text_emb is not None and found_image_emb is not None:
+                cross_modal_sim = compute_cosine_similarity(lost_clip_text_emb, found_image_emb)
 
             final_score = compute_combined_score(
-                text_sim, image_sim, TEXT_WEIGHT, IMAGE_WEIGHT
+                text_sim        = text_sim,
+                image_sim       = image_sim,
+                cross_modal_sim = cross_modal_sim,
+                text_weight         = TEXT_WEIGHT,
+                image_weight        = IMAGE_WEIGHT,
+                cross_modal_weight  = CROSS_MODAL_WEIGHT
             )
 
-            if final_score >= TEXT_SIMILARITY_THRESHOLD:
-                scored_matches.append({
-                    "lost_item_id":      lost_item['item_id'],
-                    "lost_item_title":   lost_item['title'],
-                    "lost_item_user_id": lost_item['user_id'],
-                    "text_similarity":   round(text_sim, 4) if text_sim is not None else None,
-                    "image_similarity":  round(image_sim, 4) if image_sim is not None else None,
-                    "confidence_score":  round(final_score * 100, 2)
+            if final_score >= COMBINED_THRESHOLD:
+                scored.append({
+                    "lost_item_id":       lost['item_id'],
+                    "lost_item_title":    lost['title'],
+                    "lost_item_user_id":  lost['user_id'],
+                    "text_similarity":    round(text_sim,       4),
+                    "image_similarity":   round(image_sim,      4) if image_sim       is not None else None,
+                    "cross_modal_sim":    round(cross_modal_sim,4) if cross_modal_sim  is not None else None,
+                    "confidence_score":   round(final_score * 100, 2)
                 })
 
-        # Step 4: Return top K sorted by score
-        scored_matches.sort(key=lambda x: x['confidence_score'], reverse=True)
-        top_matches = scored_matches[:TOP_K]
+        scored.sort(key=lambda x: x['confidence_score'], reverse=True)
 
         return {
             "found_item_id":           request.found_item_id,
-            "matches":                 top_matches,
+            "matches":                 scored[:TOP_K],
             "total_candidates":        len(lost_items),
-            "matches_above_threshold": len(scored_matches)
+            "matches_above_threshold": len(scored)
         }
 
     except HTTPException:
@@ -158,105 +162,113 @@ async def find_matches(request: MatchRequest):
         conn.close()
 
 
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # POST /ai/rematch
-# Called when a new LOST item is reported.
-# Finds matching FOUND items.
-# ─────────────────────────────────────────────
+# Triggered when a new LOST item is submitted.
+# Finds the best matching FOUND items.
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post("/rematch")
 async def rematch_lost_items(request: MatchRequest):
-    conn = get_connection()
+    conn   = get_connection()
     cursor = conn.cursor()
 
     try:
-        # Step 1: Load the lost item
+        # Step 1 — Load the lost item
         cursor.execute(
             """
             SELECT item_id, title, description, category_id,
-                   text_embedding, image_embedding, user_id
+                   text_embedding, image_embedding, clip_text_embedding, user_id
             FROM items
             WHERE item_id = %s
-              AND type = 'Lost'::item_type_enum
+              AND type     = 'Lost'::item_type_enum
               AND is_active = TRUE
             """,
-            (request.found_item_id,)  # field reused as trigger item id
+            (request.found_item_id,)   # field reused as trigger item id
         )
-        lost_item = cursor.fetchone()
+        lost = cursor.fetchone()
 
-        if not lost_item:
+        if not lost:
             raise HTTPException(status_code=404, detail="Lost item not found")
 
-        lost_text_emb  = lost_item['text_embedding']
-        lost_image_emb = lost_item['image_embedding']
+        lost_text_emb       = lost['text_embedding']
+        lost_image_emb      = lost['image_embedding']
+        lost_clip_text_emb  = lost['clip_text_embedding']
 
         if lost_text_emb is None and lost_image_emb is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Lost item has no embeddings. Run /embed/text first."
-            )
+            raise HTTPException(status_code=400, detail="Lost item has no embeddings yet")
 
-        # Step 2: Load candidate found items
+        # Step 2 — Load candidate FOUND items
         cursor.execute(
             """
             SELECT item_id, title, description, user_id,
-                   text_embedding, image_embedding
+                   text_embedding, image_embedding, clip_text_embedding
             FROM items
-            WHERE type = 'Found'::item_type_enum
-              AND is_active = TRUE
+            WHERE type        = 'Found'::item_type_enum
+              AND is_active   = TRUE
               AND category_id = %s
-              AND user_id != %s
+              AND user_id    != %s
               AND text_embedding IS NOT NULL
             """,
-            (lost_item['category_id'], lost_item['user_id'])
+            (lost['category_id'], lost['user_id'])
         )
         found_items = cursor.fetchall()
 
         if not found_items:
             return {
-                "lost_item_id": lost_item['item_id'],
+                "lost_item_id": lost['item_id'],
                 "matches": [],
-                "message": "No candidate found items in same category"
+                "message": "No candidate found items in this category"
             }
 
-        # Step 3: Score each candidate
-        scored_matches = []
+        # Step 3 — Score each candidate
+        scored = []
 
-        for found_item in found_items:
-            found_text_emb  = found_item['text_embedding']
-            found_image_emb = found_item['image_embedding']
+        for found in found_items:
+            found_text_emb      = found['text_embedding']
+            found_image_emb     = found['image_embedding']
+            found_clip_text_emb = found['clip_text_embedding']
 
-            text_sim = None
-            if lost_text_emb is not None and found_text_emb is not None:
-                text_sim = compute_cosine_similarity_from_db(
-                    lost_text_emb, found_text_emb
-                )
+            # Signal 1: SBERT text ↔ SBERT text
+            text_sim = compute_cosine_similarity(lost_text_emb, found_text_emb)
 
+            # Signal 2: CLIP image ↔ CLIP image
             image_sim = None
             if lost_image_emb is not None and found_image_emb is not None:
-                image_sim = compute_cosine_similarity_from_db(
-                    lost_image_emb, found_image_emb
-                )
+                image_sim = compute_cosine_similarity(lost_image_emb, found_image_emb)
+
+            # Signal 3: CLIP text (lost) ↔ CLIP image (found)  — cross-modal
+            # The lost item's text description compared directly against
+            # the found item's photo. Core cross-modal signal.
+            cross_modal_sim = None
+            if lost_clip_text_emb is not None and found_image_emb is not None:
+                cross_modal_sim = compute_cosine_similarity(lost_clip_text_emb, found_image_emb)
 
             final_score = compute_combined_score(
-                text_sim, image_sim, TEXT_WEIGHT, IMAGE_WEIGHT
+                text_sim        = text_sim,
+                image_sim       = image_sim,
+                cross_modal_sim = cross_modal_sim,
+                text_weight         = TEXT_WEIGHT,
+                image_weight        = IMAGE_WEIGHT,
+                cross_modal_weight  = CROSS_MODAL_WEIGHT
             )
 
-            if final_score >= TEXT_SIMILARITY_THRESHOLD:
-                scored_matches.append({
-                    "found_item_id":      found_item['item_id'],
-                    "found_item_title":   found_item['title'],
-                    "found_item_user_id": found_item['user_id'],
-                    "text_similarity":    round(text_sim, 4) if text_sim is not None else None,
-                    "image_similarity":   round(image_sim, 4) if image_sim is not None else None,
+            if final_score >= COMBINED_THRESHOLD:
+                scored.append({
+                    "found_item_id":      found['item_id'],
+                    "found_item_title":   found['title'],
+                    "found_item_user_id": found['user_id'],
+                    "text_similarity":    round(text_sim,       4),
+                    "image_similarity":   round(image_sim,      4) if image_sim       is not None else None,
+                    "cross_modal_sim":    round(cross_modal_sim,4) if cross_modal_sim  is not None else None,
                     "confidence_score":   round(final_score * 100, 2)
                 })
 
-        # Step 4: Return top K sorted by score
-        scored_matches.sort(key=lambda x: x['confidence_score'], reverse=True)
+        scored.sort(key=lambda x: x['confidence_score'], reverse=True)
 
         return {
-            "lost_item_id": lost_item['item_id'],
-            "matches":      scored_matches[:TOP_K]
+            "lost_item_id": lost['item_id'],
+            "matches":      scored[:TOP_K]
         }
 
     except HTTPException:

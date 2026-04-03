@@ -6,58 +6,324 @@ import { useChat } from "../context/ChatContext";
 const MatchesPageStyler = () => {
     useLayoutEffect(() => {
         const style = document.createElement("style");
+        style.id = "matches-styles";
         style.innerHTML = `
-      body { margin:0; background-color:#f0fdf4; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; }
-      .matches-container { min-height:100vh; display:flex; flex-direction:column; }
-      .matches-navbar { background:#fff; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.06); border-bottom:1px solid #dcfce7; }
-      .matches-navbar .logo { font-size:1.3rem; font-weight:700; color:#15803d; }
-      .matches-navbar .back-btn { padding:0.5rem 1rem; background:#f0fdf4; color:#15803d; border:1px solid #22c55e; border-radius:8px; cursor:pointer; font-weight:600; }
-      .matches-body { flex:1; display:flex; justify-content:center; padding:2rem; }
-      .matches-card { background:white; border-radius:16px; padding:2.5rem; max-width:960px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
-      .matches-title { font-size:1.8rem; font-weight:700; color:#14532d; margin-bottom:0.5rem; text-align:center; }
-      .matches-subtitle { text-align:center; color:#166534; margin-bottom:2rem; font-size:0.95rem; }
-      .loading-box { text-align:center; padding:3rem; color:#166534; }
-      .spinner { width:40px; height:40px; border:4px solid #dcfce7; border-top-color:#22c55e; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 1rem; }
-      @keyframes spin { to { transform:rotate(360deg); } }
-      .no-matches-box { text-align:center; padding:3rem; }
-      .no-matches-box h3 { color:#15803d; margin-bottom:0.5rem; }
-      .no-matches-box p { color:#166534; font-size:0.9rem; }
-      .matches-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1.5rem; margin-bottom:2rem; }
-      .match-card { border:2px solid #e5e7eb; border-radius:12px; overflow:hidden; transition:all 0.2s ease; background:#fafafa; }
-      .match-card.clickable { cursor:pointer; }
-      .match-card.clickable:hover { transform:translateY(-3px); box-shadow:0 6px 16px rgba(0,0,0,0.1); }
-      .match-card.selected { border-color:#22c55e; box-shadow:0 6px 20px rgba(34,197,94,0.25); }
-      .match-card-img { width:100%; height:180px; background:#f0fdf4; display:flex; align-items:center; justify-content:center; font-size:3rem; }
-      .match-card-img img { width:100%; height:100%; object-fit:cover; }
-      .match-card-body { padding:1rem; }
-      .match-card-title { font-weight:600; color:#14532d; margin-bottom:0.25rem; font-size:0.95rem; }
-      .match-card-desc { color:#4b5563; font-size:0.85rem; margin-bottom:0.5rem; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-      .match-card-location { font-size:0.8rem; color:#6b7280; }
-      .confidence-badge { display:inline-block; background:#dcfce7; color:#15803d; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-bottom:0.4rem; }
-      .action-buttons { display:flex; justify-content:center; gap:1.5rem; flex-wrap:wrap; margin-top:1rem; }
-      .primary-btn { padding:0.9rem 2rem; font-size:1rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; background-color:#22c55e; color:white; transition:background-color 0.2s; }
-      .primary-btn:hover { background-color:#16a34a; }
-      .primary-btn:disabled { background-color:#a7f3d0; cursor:not-allowed; }
-      .secondary-btn { padding:0.9rem 2rem; font-size:1rem; font-weight:600; border-radius:10px; border:2px solid #22c55e; background:white; color:#15803d; cursor:pointer; }
-      .secondary-btn:hover { background-color:#f0fdf4; }
-      .info-banner { background:#f0fdf4; border:1px solid #22c55e; border-radius:8px; padding:12px 16px; color:#15803d; font-size:0.9rem; margin-bottom:1.5rem; text-align:center; }
-      @media (max-width:768px) { .matches-grid { grid-template-columns:1fr; } }
-    `;
+            @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+            *, *::before, *::after { box-sizing: border-box; }
+            body {
+                margin: 0;
+                background: #07090f;
+                font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+                color: #dde4f0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            ::-webkit-scrollbar { width: 6px; }
+            ::-webkit-scrollbar-track { background: #07090f; }
+            ::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 6px; }
+
+            .matches-container {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                background: #07090f;
+                background-image: radial-gradient(rgba(0,224,122,0.045) 1px, transparent 1px);
+                background-size: 32px 32px;
+            }
+
+            .matches-navbar {
+                background: rgba(7,9,15,0.9);
+                padding: 0.9rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid rgba(255,255,255,0.06);
+                backdrop-filter: blur(16px);
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+
+            .matches-navbar .logo {
+                font-family: 'Syne', system-ui, sans-serif;
+                font-size: 1.15rem;
+                font-weight: 800;
+                color: #00e07a;
+                letter-spacing: -0.03em;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .matches-navbar .logo-icon-svg { width: 30px; height: 30px; }
+
+            .matches-navbar .back-btn {
+                padding: 0.45rem 1rem;
+                background: transparent;
+                color: #7a8499;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 0.84rem;
+                font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+                transition: all 0.2s;
+            }
+
+            .matches-navbar .back-btn:hover {
+                background: rgba(255,255,255,0.06);
+                color: #dde4f0;
+                border-color: rgba(255,255,255,0.18);
+            }
+
+            .matches-body {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                padding: 2.5rem 1.5rem;
+            }
+
+            .matches-card {
+                background: #111826;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 20px;
+                padding: 2.5rem;
+                max-width: 960px;
+                width: 100%;
+                box-shadow: 0 16px 60px rgba(0,0,0,0.5);
+            }
+
+            .matches-title {
+                font-family: 'Syne', system-ui, sans-serif;
+                font-size: 1.7rem;
+                font-weight: 800;
+                color: #f0f4ff;
+                margin-bottom: 0.4rem;
+                text-align: center;
+                letter-spacing: -0.03em;
+            }
+
+            .matches-subtitle {
+                text-align: center;
+                color: #7a8499;
+                margin-bottom: 2rem;
+                font-size: 0.9rem;
+            }
+
+            .loading-box {
+                text-align: center;
+                padding: 3.5rem;
+                color: #7a8499;
+            }
+
+            .spinner {
+                width: 44px; height: 44px;
+                border: 4px solid rgba(0,224,122,0.1);
+                border-top-color: #00e07a;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                margin: 0 auto 1.25rem;
+                box-shadow: 0 0 16px rgba(0,224,122,0.15);
+            }
+
+            @keyframes spin { to { transform: rotate(360deg); } }
+
+            .no-matches-box {
+                text-align: center;
+                padding: 3.5rem;
+            }
+
+            .no-matches-box h3 {
+                font-family: 'Syne', system-ui, sans-serif;
+                color: #f0f4ff;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+                font-size: 1.2rem;
+                letter-spacing: -0.02em;
+            }
+
+            .no-matches-box p { color: #7a8499; font-size: 0.88rem; }
+
+            .matches-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                gap: 1.25rem;
+                margin-bottom: 2rem;
+            }
+
+            .match-card {
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 14px;
+                overflow: hidden;
+                transition: all 0.2s;
+                background: #0c1018;
+            }
+
+            .match-card.clickable { cursor: pointer; }
+
+            .match-card.clickable:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+                border-color: rgba(255,255,255,0.15);
+            }
+
+            .match-card.selected {
+                border-color: #00e07a;
+                box-shadow: 0 0 0 2px rgba(0,224,122,0.2), 0 8px 24px rgba(0,224,122,0.15);
+            }
+
+            .match-card-img {
+                width: 100%;
+                height: 180px;
+                background: #0c1018;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 3rem;
+                border-bottom: 1px solid rgba(255,255,255,0.07);
+            }
+
+            .match-card-img img { width: 100%; height: 100%; object-fit: cover; }
+
+            .match-card-body { padding: 1rem; }
+
+            .match-card-title {
+                font-weight: 700;
+                color: #f0f4ff;
+                margin-bottom: 0.25rem;
+                font-size: 0.94rem;
+            }
+
+            .match-card-desc {
+                color: #7a8499;
+                font-size: 0.83rem;
+                margin-bottom: 0.5rem;
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                line-height: 1.4;
+            }
+
+            .match-card-location { font-size: 0.78rem; color: #4a5568; }
+
+            .confidence-badge {
+                display: inline-block;
+                background: rgba(0,224,122,0.12);
+                color: #00e07a;
+                border: 1px solid rgba(0,224,122,0.2);
+                font-size: 0.72rem;
+                font-weight: 700;
+                padding: 2px 8px;
+                border-radius: 20px;
+                margin-bottom: 0.5rem;
+                letter-spacing: 0.03em;
+            }
+
+            .action-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 1.25rem;
+                flex-wrap: wrap;
+                margin-top: 1rem;
+            }
+
+            .primary-btn {
+                padding: 0.82rem 2rem;
+                font-size: 0.92rem;
+                font-weight: 700;
+                font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+                border-radius: 10px;
+                border: none;
+                cursor: pointer;
+                background: #00e07a;
+                color: #030a04;
+                transition: all 0.2s;
+                letter-spacing: 0.01em;
+            }
+
+            .primary-btn:hover {
+                background: #00ff8a;
+                box-shadow: 0 0 24px rgba(0,224,122,0.35);
+                transform: translateY(-1px);
+            }
+
+            .primary-btn:disabled {
+                background: rgba(0,224,122,0.25);
+                color: rgba(0,224,122,0.5);
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+            }
+
+            .secondary-btn {
+                padding: 0.82rem 2rem;
+                font-size: 0.92rem;
+                font-weight: 700;
+                font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+                border-radius: 10px;
+                border: 1px solid rgba(255,255,255,0.12);
+                background: transparent;
+                color: #7a8499;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .secondary-btn:hover {
+                background: rgba(255,255,255,0.05);
+                color: #dde4f0;
+                border-color: rgba(255,255,255,0.2);
+            }
+
+            .info-banner {
+                background: rgba(0,224,122,0.06);
+                border: 1px solid rgba(0,224,122,0.14);
+                border-radius: 10px;
+                padding: 12px 16px;
+                color: #00e07a;
+                font-size: 0.86rem;
+                margin-bottom: 1.5rem;
+                text-align: center;
+                line-height: 1.5;
+            }
+
+            @media (max-width: 768px) {
+                .matches-grid { grid-template-columns: 1fr; }
+                .matches-card { padding: 1.5rem; }
+                .matches-body { padding: 1.5rem 1rem; }
+            }
+        `;
         document.head.appendChild(style);
-        return () => document.head.removeChild(style);
+        return () => {
+            const el = document.getElementById("matches-styles");
+            if (el) document.head.removeChild(el);
+        };
     }, []);
     return null;
 };
 
+const NavLogo = () => (
+    <div className="logo">
+        <svg className="logo-icon-svg" viewBox="0 0 36 36" fill="none">
+            <circle cx="15" cy="15" r="10.5" stroke="#00e07a" strokeWidth="2.4"/>
+            <circle cx="15" cy="15" r="2" fill="#00e07a"/>
+            <line x1="22.5" y1="22.5" x2="32" y2="32" stroke="#00e07a" strokeWidth="2.8" strokeLinecap="round"/>
+        </svg>
+        Lost&Found
+    </div>
+);
+
 export default function TopMatchesPage() {
     const { itemId }   = useParams();
     const navigate     = useNavigate();
-    const { openChat } = useChat();   // ← global chat context
+    const { openChat } = useChat();
 
     const [matches, setMatches]             = useState([]);
     const [itemType, setItemType]           = useState(null);
     const [loading, setLoading]             = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(null);
+    const [hiddenDetails, setHiddenDetails] = useState(null);
 
     useEffect(() => {
         if (!itemId) return;
@@ -65,6 +331,7 @@ export default function TopMatchesPage() {
             .then(res => {
                 setMatches(res.data.matches || []);
                 setItemType(res.data.item_type);
+                setHiddenDetails(res.data.hidden_details || null);
                 setLoading(false);
             })
             .catch(() => setLoading(false));
@@ -73,14 +340,12 @@ export default function TopMatchesPage() {
     const handleConfirm = async () => {
         if (selectedIndex === null) return;
         const match = matches[selectedIndex];
-
-        // Open the global chatbox — persists across navigation
         openChat({
             matchId:      match.match_id,
             receiverId:   match.finder_user_id,
-            receiverName: match.finder_name
+            receiverName: match.finder_name,
+            hiddenDetails: hiddenDetails,
         });
-
         try {
             await api.patch(`/items/${itemId}/match/${match.match_id}/feedback`, { feedback: "correct" });
         } catch {}
@@ -102,7 +367,7 @@ export default function TopMatchesPage() {
             <MatchesPageStyler />
             <div className="matches-container">
                 <nav className="matches-navbar">
-                    <div className="logo">🔗 Lost&Found</div>
+                    <NavLogo />
                     <button className="back-btn" onClick={() => navigate("/notifications")}>← My Items</button>
                 </nav>
 
@@ -112,7 +377,12 @@ export default function TopMatchesPage() {
                             {isFoundOwner ? "Matched Lost Items" : "Top Matches"}
                         </h1>
 
-                        {loading && <div className="loading-box"><div className="spinner" /><p>Loading matches...</p></div>}
+                        {loading && (
+                            <div className="loading-box">
+                                <div className="spinner" />
+                                <p>Searching for matches…</p>
+                            </div>
+                        )}
 
                         {!loading && matches.length === 0 && (
                             <div className="no-matches-box">
@@ -155,17 +425,14 @@ export default function TopMatchesPage() {
                                                 <div className="match-card-location">
                                                     📍 {(isFoundOwner ? match.lost_location : match.found_location) || "No location"}
                                                 </div>
-                                                <div style={{ fontSize:"0.8rem", color:"#6b7280", marginTop:"4px" }}>
-                                                    {isFoundOwner
-                                                        ? `Lost by: ${match.owner_name}`
-                                                        : `Found by: ${match.finder_name}`}
+                                                <div style={{ fontSize:"0.78rem", color:"#4a5568", marginTop:"4px" }}>
+                                                    {isFoundOwner ? `Lost by: ${match.owner_name}` : `Found by: ${match.finder_name}`}
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* Lost item owner — can claim and open chat */}
                                 {!isFoundOwner && (
                                     <div className="action-buttons">
                                         <button className="primary-btn" disabled={selectedIndex === null} onClick={handleConfirm}>
@@ -177,11 +444,10 @@ export default function TopMatchesPage() {
                                     </div>
                                 )}
 
-                                {/* Found item owner — read-only, directed to chats */}
                                 {isFoundOwner && (
                                     <div style={{ textAlign:"center", marginTop:"1.5rem" }}>
-                                        <p style={{ color:"#166534", fontSize:"0.9rem", marginBottom:"1rem" }}>
-                                            If the owner contacts you, the conversation will appear in your <strong>My Chats</strong> tab.
+                                        <p style={{ color:"#7a8499", fontSize:"0.88rem", marginBottom:"1rem", lineHeight:1.6 }}>
+                                            If the owner contacts you, the conversation will appear in your <strong style={{color:"#dde4f0"}}>My Chats</strong> tab.
                                         </p>
                                         <button className="secondary-btn" onClick={() => navigate("/notifications")}>
                                             Go to My Dashboard

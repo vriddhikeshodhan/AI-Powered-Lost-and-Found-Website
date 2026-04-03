@@ -1,3 +1,21 @@
+"""
+embedder.py — Three embedding signals for matching
+
+  1. SBERT  : all-mpnet-base-v2   → 768-dim text embeddings
+              Upgraded from all-MiniLM-L6-v2 (384-dim).
+              Significantly more accurate, same inference speed.
+
+  2. CLIP image : clip-ViT-B-32   → 512-dim image embeddings
+
+  3. CLIP text  : clip-ViT-B-32   → 512-dim text embeddings  ← NEW (cross-modal)
+              Same 512-dim space as CLIP image embeddings.
+              cosine(clip_text_lost, clip_image_found) = cross-modal score.
+              This is what CLIP was originally designed for.
+
+Scoring weights:
+  0.50 × SBERT text  +  0.30 × cross-modal  +  0.20 × CLIP image
+"""
+
 from typing import Optional
 from PIL import Image
 import numpy as np
@@ -5,215 +23,220 @@ import io
 import base64
 
 _sbert_model = None
-_clip_model = None
+_clip_model  = None
 
 
 def _load_models():
-    """
-    Load SBERT and CLIP models into module-level variables.
-    Called once at startup. Separated into a function so errors
-    are caught and reported clearly instead of crashing silently.
-    """
     global _sbert_model, _clip_model
-
     from sentence_transformers import SentenceTransformer
 
-    print("[Embedder] Loading SBERT model (all-MiniLM-L6-v2)...")
+    print("[Embedder] Loading SBERT (all-mpnet-base-v2) ...")
     try:
-        _sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
-        print("[Embedder] SBERT loaded successfully.")
+        _sbert_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+        print("[Embedder] SBERT loaded — 768-dim")
     except Exception as e:
-        print(f"[Embedder] ERROR: Failed to load SBERT — {e}")
-        raise RuntimeError(f"SBERT model failed to load: {e}")
+        raise RuntimeError(f"SBERT failed to load: {e}")
 
-    print("[Embedder] Loading CLIP model (clip-ViT-B-32)...")
+    print("[Embedder] Loading CLIP (clip-ViT-B-32) ...")
     try:
-        # trust_remote_code=True is required in sentence-transformers >= 3.x
         _clip_model = SentenceTransformer('clip-ViT-B-32', trust_remote_code=True)
-        print("[Embedder] CLIP loaded successfully.")
+        print("[Embedder] CLIP loaded — 512-dim (image + text, shared space)")
     except Exception as e:
-        print(f"[Embedder] ERROR: Failed to load CLIP — {e}")
-        # CLIP failure is non-fatal — system can still do text-only matching
-        # Image matching will be disabled but text matching works fine
         _clip_model = None
-        print("[Embedder] WARNING: Running in text-only mode. Image matching disabled.")
+        print(f"[Embedder] WARNING: CLIP failed — {e}. Running text-only mode.")
 
 
-# Load immediately on import
 _load_models()
 
 
-# ─────────────────────────────────────────────
-# STATUS CHECK
-# Used by /health endpoint in main.py
-# ─────────────────────────────────────────────
-
 def get_model_status() -> dict:
     return {
-        "sbert": "loaded" if _sbert_model is not None else "failed",
-        "clip":  "loaded" if _clip_model  is not None else "failed (text-only mode)"
+        "sbert": "loaded (all-mpnet-base-v2, 768-dim)" if _sbert_model else "failed",
+        "clip":  "loaded (clip-ViT-B-32, 512-dim)"     if _clip_model  else "failed"
     }
 
 
-# ─────────────────────────────────────────────
-# TEXT EMBEDDING
-# ─────────────────────────────────────────────
+# ── SIGNAL 1 — SBERT TEXT (768-dim) ──────────────────────────────────────────
 
 def get_text_embedding(text: str) -> list:
-    
+    """SBERT encoding. Returns 768-dim normalized vector."""
     if _sbert_model is None:
-        raise RuntimeError("SBERT model is not loaded")
-
-    # Clean the text
+        raise RuntimeError("SBERT not loaded")
     text = text.strip() if text else ""
-
     if not text:
-        # Return zero vector — will score 0.0 against everything
-        return [0.0] * 384
-
+        return [0.0] * 768
     try:
-        embedding = _sbert_model.encode(
-            text,
-            convert_to_numpy=True,
-            normalize_embeddings=True   # L2 normalize → dot product = cosine sim
-        )
-        return embedding.tolist()
-
+        emb = _sbert_model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
+        return emb.tolist()
     except Exception as e:
-        print(f"[Embedder] Text embedding failed: {e}")
-        return [0.0] * 384
+        print(f"[Embedder] SBERT encode error: {e}")
+        return [0.0] * 768
 
 
-# ─────────────────────────────────────────────
-# IMAGE EMBEDDING — from raw bytes
-# ─────────────────────────────────────────────
+# ── SIGNAL 2 — CLIP IMAGE (512-dim) ──────────────────────────────────────────
 
 def get_image_embedding_from_bytes(image_bytes: bytes) -> Optional[list]:
-    
-    if _clip_model is None:
-        print("[Embedder] CLIP not available — skipping image embedding")
+    """CLIP image encoding. Returns 512-dim normalized vector."""
+    if _clip_model is None or not image_bytes:
         return None
-
-    if not image_bytes:
-        return None
-
     try:
-        # Open and normalize the image format
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-
-        # Encode using CLIP
-        # In sentence-transformers >= 3.x, PIL images are passed directly
-        embedding = _clip_model.encode(
-            image,
-            convert_to_numpy=True,
-            normalize_embeddings=True
-        )
-
-        # encode() may return a 2D array if input was a list — flatten if needed
-        if isinstance(embedding, np.ndarray) and embedding.ndim == 2:
-            embedding = embedding[0]
-
-        return embedding.tolist()
-
+        emb = _clip_model.encode(image, convert_to_numpy=True, normalize_embeddings=True)
+        if isinstance(emb, np.ndarray) and emb.ndim == 2:
+            emb = emb[0]
+        return emb.tolist()
     except Exception as e:
-        print(f"[Embedder] Image embedding failed: {e}")
+        print(f"[Embedder] CLIP image encode error: {e}")
         return None
 
-
-# ─────────────────────────────────────────────
-# IMAGE EMBEDDING — from base64 string
-# ─────────────────────────────────────────────
-
-def get_image_embedding_from_base64(base64_string: str) -> Optional[list]:
-    
-    if not base64_string:
-        return None
-
-    try:
-        # Strip data URI prefix if present
-        if "," in base64_string:
-            base64_string = base64_string.split(",", 1)[1]
-
-        image_bytes = base64.b64decode(base64_string)
-        return get_image_embedding_from_bytes(image_bytes)
-
-    except Exception as e:
-        print(f"[Embedder] Base64 decode failed: {e}")
-        return None
-
-
-# ─────────────────────────────────────────────
-# IMAGE EMBEDDING — from file path
-# ─────────────────────────────────────────────
 
 def get_image_embedding_from_path(image_path: str) -> Optional[list]:
-    
     if not image_path:
         return None
-
     try:
         with open(image_path, "rb") as f:
-            image_bytes = f.read()
-        return get_image_embedding_from_bytes(image_bytes)
-
-    except FileNotFoundError:
-        print(f"[Embedder] Image file not found: {image_path}")
-        return None
+            return get_image_embedding_from_bytes(f.read())
     except Exception as e:
-        print(f"[Embedder] Failed to read image from path {image_path}: {e}")
+        print(f"[Embedder] Image path error: {e}")
         return None
 
 
-# ─────────────────────────────────────────────
-# SIMILARITY COMPUTATION
-# ─────────────────────────────────────────────
+def get_image_embedding_from_base64(b64: str) -> Optional[list]:
+    if not b64:
+        return None
+    try:
+        if "," in b64:
+            b64 = b64.split(",", 1)[1]
+        return get_image_embedding_from_bytes(base64.b64decode(b64))
+    except Exception as e:
+        print(f"[Embedder] Base64 error: {e}")
+        return None
+
+
+# ── SIGNAL 3 — CLIP TEXT (512-dim, cross-modal) ───────────────────────────────
+#
+# CLIP has TWO encoders in one model:
+#   clip_model.encode(PIL_Image) → 512-dim image vector
+#   clip_model.encode("string")  → 512-dim text  vector  ← SAME space
+#
+# Because both vectors live in the same space:
+#   cosine( clip_text("silver puma bottle") , clip_image(photo) )
+# ...is a valid and meaningful similarity score.
+#
+# This is cross-modal retrieval — comparing a text description
+# directly against an image, with no intermediate step.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_clip_text_embedding(text: str) -> Optional[list]:
+    """
+    Encode text using CLIP's text encoder (not SBERT).
+    Returns 512-dim vector in CLIP's shared image-text space.
+
+    DIFFERENT from get_text_embedding():
+      get_text_embedding()      → SBERT → 768-dim (text-only space)
+      get_clip_text_embedding() → CLIP  → 512-dim (shared with images)
+
+    The output can be directly cosine-compared with image_embedding
+    from get_image_embedding_from_bytes(). That IS cross-modal matching.
+    """
+    if _clip_model is None:
+        return None
+    text = text.strip() if text else ""
+    if not text:
+        return None
+    try:
+        # SentenceTransformer CLIP uses text encoder when input is a string
+        emb = _clip_model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
+        if isinstance(emb, np.ndarray) and emb.ndim == 2:
+            emb = emb[0]
+        return emb.tolist()
+    except Exception as e:
+        print(f"[Embedder] CLIP text encode error: {e}")
+        return None
+
+
+# ── TEXT ENRICHMENT ───────────────────────────────────────────────────────────
+#
+# Better input text = better embeddings.
+# Concatenate all structured fields so the model sees brand,
+# colour, and distinguishing features, not just a vague description.
+#
+# Example output:
+#   "Lost item: puma silver bottle. brand: puma. colour: silver.
+#    distinguishing feature: dent on lower left. 750ml steel water
+#    bottle with black lid, slight dent on lower left side."
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_enriched_text(
+    title:          str,
+    description:    str,
+    brand:          str = "",
+    colour:         str = "",
+    distinguishing: str = "",
+    item_type:      str = ""
+) -> str:
+    """Build an enriched text string for embedding. More detail = better match."""
+    parts = []
+    prefix = f"{item_type} item: {title}" if item_type else title
+    parts.append(prefix)
+
+    if brand:          parts.append(f"brand: {brand}")
+    if colour:         parts.append(f"colour: {colour}")
+    if distinguishing: parts.append(f"distinguishing feature: {distinguishing}")
+    if description and description.strip() != title.strip():
+        parts.append(description)
+
+    return ". ".join(filter(None, parts))
+
+
+# ── COSINE SIMILARITY ─────────────────────────────────────────────────────────
 
 def compute_cosine_similarity(vec1, vec2) -> float:
-    
     if vec1 is None or vec2 is None:
         return 0.0
-
     a = np.array(vec1, dtype=np.float32)
     b = np.array(vec2, dtype=np.float32)
-
-    # Guard against zero vectors (empty/failed embeddings)
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b)
-
-    if norm_a == 0.0 or norm_b == 0.0:
+    na, nb = np.linalg.norm(a), np.linalg.norm(b)
+    if na == 0.0 or nb == 0.0:
         return 0.0
-
-    similarity = float(np.dot(a, b) / (norm_a * norm_b))
-
-    # Clamp to [0, 1] — floating point arithmetic can produce tiny negatives
-    # for near-orthogonal vectors, and tiny values > 1.0 for near-identical ones
-    return max(0.0, min(1.0, similarity))
+    return float(max(0.0, min(1.0, np.dot(a, b) / (na * nb))))
 
 
-# ─────────────────────────────────────────────
-# COMBINED SCORE
-# ─────────────────────────────────────────────
+# ── COMBINED SCORE (three signals) ───────────────────────────────────────────
+#
+# Default weights:  50% SBERT + 30% cross-modal + 20% CLIP image
+#
+# Graceful degradation when signals are missing:
+#   Missing cross-modal  → renormalize: 70% text + 30% image
+#   Missing image        → renormalize: 70% text + 30% cross-modal
+#   Text only            → 100% text
+# ─────────────────────────────────────────────────────────────────────────────
 
 def compute_combined_score(
-    text_sim: Optional[float],
-    image_sim: Optional[float],
-    text_weight: float = 0.6,
-    image_weight: float = 0.4
+    text_sim:           Optional[float],
+    image_sim:          Optional[float],
+    cross_modal_sim:    Optional[float] = None,
+    text_weight:        float = 0.50,
+    image_weight:       float = 0.20,
+    cross_modal_weight: float = 0.30
 ) -> float:
-    
-    has_text  = text_sim  is not None and text_sim  >= 0.0
-    has_image = image_sim is not None and image_sim >= 0.0
+    """Combine three signals into one score in [0, 1]."""
+    score  = 0.0
+    weight = 0.0
 
-    if has_text and has_image:
-        # Renormalize weights in case caller passes non-standard values
-        total_weight = text_weight + image_weight
-        return (text_weight * text_sim + image_weight * image_sim) / total_weight
+    if text_sim is not None and text_sim >= 0.0:
+        score  += text_weight * text_sim
+        weight += text_weight
 
-    elif has_text:
-        return text_sim
+    if image_sim is not None and image_sim >= 0.0:
+        score  += image_weight * image_sim
+        weight += image_weight
 
-    elif has_image:
-        return image_sim
+    if cross_modal_sim is not None and cross_modal_sim >= 0.0:
+        score  += cross_modal_weight * cross_modal_sim
+        weight += cross_modal_weight
 
-    else:
+    if weight == 0.0:
         return 0.0
+
+    return float(max(0.0, min(1.0, score / weight)))
