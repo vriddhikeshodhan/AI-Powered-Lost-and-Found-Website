@@ -1,134 +1,3 @@
-/*import React, { useState } from "react";
-import "./FoundPage.css";
-
-export default function FoundPage() {
-  const [success, setSuccess] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSuccess(true); // Remove when connecting backend
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  return (
-    <div className="page-wrapper">
-      <div className="page-inner">
-        
-        <div className="page-header">
-          <h1 className="page-title">Report a Found Item</h1>
-          <p className="page-subtitle">
-            Tell us what you found and where. We’ll try to match it with people who
-            reported similar lost items.
-          </p>
-        </div>
-
-        
-        <section className="card">
-          <div className="card-header">
-            <h2 className="card-title">Found Item Details</h2>
-            <span className="card-badge">Step 1 of 1</span>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div className="form-grid">
-              
-              <div className="form-group">
-                <label>Item type</label>
-                <select required>
-                  <option value="">Select type</option>
-                  <option>Electronics</option>
-                  <option>Wallet / ID</option>
-                  <option>Clothing / Accessories</option>
-                  <option>Books / Documents</option>
-                  <option>Keys</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              
-              <div className="form-group">
-                <label>Item title</label>
-                <input
-                  type="text"
-                  placeholder="Example: Black Lenovo laptop"
-                  required
-                />
-              </div>
-
-              
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  placeholder="Color, brand, stickers, scratches, special marks, etc."
-                  required
-                ></textarea>
-                <p className="hint">
-                  Add anything that makes this item easy to recognize.
-                </p>
-              </div>
-
-              
-              <div className="form-group">
-                <label>Date found</label>
-                <input type="date" required />
-              </div>
-
-              
-              <div className="form-group">
-                <label>Where did you find it?</label>
-                <input
-                  type="text"
-                  placeholder="Example: Library, 2nd floor, near window table"
-                  required
-                />
-              </div>
-
-              
-              <div className="form-group">
-                <label>Item photo</label>
-                <label className="file-input-wrapper">
-                  <input type="file" accept="image/*" />
-                  <span>
-                    <strong>Click to upload</strong> or drag a photo (recommended)
-                  </span>
-                </label>
-                <p className="hint">A clear photo increases matching accuracy.</p>
-              </div>
-            </div>
-
-            
-            <div className="card-footer">
-              <div className="card-footer-left">
-                By submitting, you confirm this is an honest report.
-              </div>
-
-              <div className="btn-row">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => window.history.back()}
-                >
-                  Cancel
-                </button>
-
-                <button type="submit" className="btn btn-primary">
-                  Submit Found Item
-                </button>
-              </div>
-            </div>
-
-            
-            <div className={`success-banner ${success ? "show" : ""}`}>
-              ✅ Found item submitted! (Mock message — connect backend later)
-            </div>
-          </form>
-        </section>
-      </div>
-    </div>
-  );
-}
-*/
-
 import React, { useState, useEffect } from "react";
 import "./FoundPage.css";
 import { useNavigate } from "react-router-dom";
@@ -146,14 +15,56 @@ export default function FoundPage() {
         description: "",
         category_id: "",
         location: "",
+        colour: "",      // NEW
         photo: null,
     });
 
-    // Load categories on mount
+    // NEW — GPS coordinates captured silently from browser on mount
+    const [gpsCoords, setGpsCoords] = useState({ latitude: null, longitude: null });
+    /*
     useEffect(() => {
         api.get("/items/categories")
             .then(res => setCategories(res.data.categories))
             .catch(() => setCategories([]));
+    }, []);
+*/
+    useEffect(() => {
+        api.get("/items/categories")
+            .then(res => {
+                // 1. A list of core keywords to hunt for
+                const hiddenKeywords = [
+                    "charger", "cable", 
+                    "clothing", 
+                    "document", 
+                    "id card", "college", 
+                    "jewellery", "accessories", 
+                    "other", 
+                    "sport"
+                ];
+
+                // 2. Filter out any category that contains ANY of those keywords
+                const filteredCategories = res.data.categories.filter(cat => {
+                    const catName = (cat.category_name || "").toLowerCase().trim();
+                    
+                    // Check if this category name includes any of our forbidden keywords
+                    const shouldHide = hiddenKeywords.some(keyword => catName.includes(keyword));
+                    
+                    // Keep it ONLY if shouldHide is false
+                    return !shouldHide;
+                });
+
+                setCategories(filteredCategories);
+            })
+            .catch(() => setCategories([]));
+    }, []);
+    // NEW — request GPS silently; if denied, matching continues without location
+    useEffect(() => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => setGpsCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            () => {},   // silently ignore denial
+            { timeout: 8000 }
+        );
     }, []);
 
     const handleChange = (e) => {
@@ -175,6 +86,12 @@ export default function FoundPage() {
             data.append("description", formData.description);
             data.append("category_id", formData.category_id);
             data.append("location",    formData.location);
+            data.append("colour",      formData.colour);   // NEW
+
+            // NEW — include GPS if browser provided it
+            if (gpsCoords.latitude  !== null) data.append("latitude",  gpsCoords.latitude);
+            if (gpsCoords.longitude !== null) data.append("longitude", gpsCoords.longitude);
+
             if (formData.photo) data.append("image", formData.photo);
 
             await api.post("/items/found", data, {
@@ -207,6 +124,13 @@ export default function FoundPage() {
                         <h2 className="card-title">Found Item Details</h2>
                     </div>
 
+                    {/* GPS status indicator */}
+                    {gpsCoords.latitude && (
+                        <p style={{ fontSize:"12px", color:"#16a34a", marginBottom:"8px" }}>
+                            📍 Location captured — this will improve match accuracy.
+                        </p>
+                    )}
+
                     {/* Success Banner */}
                     {success && (
                         <div style={{ background:"#f0fdf4", border:"1px solid #22c55e", borderRadius:"8px", padding:"16px", marginBottom:"20px", textAlign:"center" }}>
@@ -214,16 +138,12 @@ export default function FoundPage() {
                             <p style={{ color:"#166534", fontSize:"14px", marginBottom:"12px" }}>
                                 Our AI is searching for matching lost items in the background. The owner will be notified if a match is found.
                             </p>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => navigate("/userlanding")}
-                            >
+                            <button className="btn btn-primary" onClick={() => navigate("/userlanding")}>
                                 Back to Home
                             </button>
                         </div>
                     )}
 
-                    {/* Error */}
                     {error && (
                         <div style={{ background:"#fef2f2", color:"#dc2626", border:"1px solid #fecaca", borderRadius:"6px", padding:"10px", marginBottom:"16px", fontSize:"14px" }}>
                             {error}
@@ -233,15 +153,14 @@ export default function FoundPage() {
                     {!success && (
                         <form onSubmit={handleSubmit}>
                             <div className="form-grid">
+
                                 {/* Category */}
                                 <div className="form-group">
                                     <label>Item category</label>
                                     <select name="category_id" value={formData.category_id} onChange={handleChange} required>
                                         <option value="">Select category</option>
                                         {categories.map(cat => (
-                                            <option key={cat.category_id} value={cat.category_id}>
-                                                {cat.category_name}
-                                            </option>
+                                            <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -255,8 +174,23 @@ export default function FoundPage() {
                                 {/* Description */}
                                 <div className="form-group">
                                     <label>Description</label>
-                                    <textarea name="description" placeholder="Color, brand, stickers, scratches, special marks, etc." value={formData.description} onChange={handleChange} required />
+                                    <textarea name="description" placeholder="Brand, stickers, scratches, special marks, etc." value={formData.description} onChange={handleChange} required />
                                     <p className="hint">Add anything that makes this item easy to recognize.</p>
+                                </div>
+
+                                {/* NEW — Colour field */}
+                                <div className="form-group">
+                                    <label>
+                                        Colour <span style={{color:"#16a34a", fontSize:"12px"}}>(important for matching accuracy)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="colour"
+                                        placeholder="Example: red, silver, dark blue, black and white"
+                                        value={formData.colour}
+                                        onChange={handleChange}
+                                    />
+                                    <p className="hint">Exact colour match gives a +10% confidence bonus.</p>
                                 </div>
 
                                 {/* Location */}
@@ -277,13 +211,9 @@ export default function FoundPage() {
                             </div>
 
                             <div className="card-footer">
-                                <div className="card-footer-left">
-                                    By submitting, you confirm this is an honest report.
-                                </div>
+                                <div className="card-footer-left">By submitting, you confirm this is an honest report.</div>
                                 <div className="btn-row">
-                                    <button type="button" className="btn btn-ghost" onClick={() => navigate("/userlanding")}>
-                                        Cancel
-                                    </button>
+                                    <button type="button" className="btn btn-ghost" onClick={() => navigate("/userlanding")}>Cancel</button>
                                     <button type="submit" className="btn btn-primary" disabled={loading}>
                                         {loading ? "Submitting..." : "Submit Found Item"}
                                     </button>

@@ -5,10 +5,6 @@
 const { pool } = require('../config/db');
 const path     = require('path');
 
-// ── AI service — destructure all functions explicitly ────────────────────────
-// BUG FIX: previously only `const aiService = require(...)` was used,
-// meaning generateTextEmbedding, generateClipTextEmbedding etc. were
-// called as bare names inside setImmediate and threw ReferenceError silently.
 const {
     generateTextEmbedding,
     generateClipTextEmbedding,
@@ -18,7 +14,6 @@ const {
     saveMatchesAndNotify
 } = require('../services/ai.service');
 
-// ── Email service ─────────────────────────────────────────────────────────────
 const emailService = require('../services/email.service');
 
 
@@ -26,7 +21,8 @@ const emailService = require('../services/email.service');
 // POST /api/items/found
 // ─────────────────────────────────────────────
 async function reportFoundItem(req, res) {
-    const { title, description, category_id, location } = req.body;
+    // Added: colour, latitude, longitude
+    const { title, description, category_id, location, colour, latitude, longitude } = req.body;
     const userId = req.user.user_id;
 
     if (!title || !description || !category_id) {
@@ -38,11 +34,23 @@ async function reportFoundItem(req, res) {
     try {
         await client.query('BEGIN');
 
+        // Added colour, latitude, longitude to INSERT
         const itemResult = await client.query(
-            `INSERT INTO items (title, description, category_id, location, type, user_id, status, expires_at)
-             VALUES ($1, $2, $3, $4, 'Found', $5, 'active', NOW() + INTERVAL '30 days')
+            `INSERT INTO items
+             (title, description, category_id, location, type, user_id,
+              colour, latitude, longitude, status, expires_at)
+             VALUES ($1, $2, $3, $4, 'Found', $5, $6, $7, $8, 'active', NOW() + INTERVAL '30 days')
              RETURNING item_id, title`,
-            [title, description, category_id, location || null, userId]
+            [
+                title,
+                description,
+                category_id,
+                location      || null,
+                userId,
+                colour        || null,
+                latitude      ? parseFloat(latitude)  : null,
+                longitude     ? parseFloat(longitude) : null
+            ]
         );
         const { item_id: itemId, title: savedTitle } = itemResult.rows[0];
 
@@ -60,7 +68,8 @@ async function reportFoundItem(req, res) {
         setImmediate(async () => {
             try {
                 const enrichedText = `${title} ${description}`.trim();
-                const extraFields  = { title, item_type: 'Found' };
+                // Pass colour so the embedding captures it explicitly
+                const extraFields  = { title, item_type: 'Found', colour: colour || '' };
 
                 await generateTextEmbedding(itemId, enrichedText, extraFields);
                 await generateClipTextEmbedding(itemId, enrichedText, extraFields);
@@ -70,8 +79,6 @@ async function reportFoundItem(req, res) {
                 }
 
                 const matches = await findMatchesForFoundItem(itemId);
-
-                // saveMatchesAndNotify also sends match emails to lost item owners
                 await saveMatchesAndNotify(matches, itemId, 'Found');
 
             } catch (err) {
@@ -99,7 +106,8 @@ async function reportFoundItem(req, res) {
 // POST /api/items/lost
 // ─────────────────────────────────────────────
 async function reportLostItem(req, res) {
-    const { title, description, category_id, location, hidden_details } = req.body;
+    // Added: colour, latitude, longitude
+    const { title, description, category_id, location, hidden_details, colour, latitude, longitude } = req.body;
     const userId = req.user.user_id;
 
     if (!title || !description || !category_id) {
@@ -111,12 +119,24 @@ async function reportLostItem(req, res) {
     try {
         await client.query('BEGIN');
 
+        // Added colour, latitude, longitude to INSERT
         const itemResult = await client.query(
             `INSERT INTO items
-             (title, description, category_id, location, type, user_id, hidden_details, status, expires_at)
-             VALUES ($1, $2, $3, $4, 'Lost', $5, $6, 'active', NOW() + INTERVAL '30 days')
+             (title, description, category_id, location, type, user_id,
+              hidden_details, colour, latitude, longitude, status, expires_at)
+             VALUES ($1, $2, $3, $4, 'Lost', $5, $6, $7, $8, $9, 'active', NOW() + INTERVAL '30 days')
              RETURNING item_id, title`,
-            [title, description, category_id, location || null, userId, hidden_details || null]
+            [
+                title,
+                description,
+                category_id,
+                location      || null,
+                userId,
+                hidden_details || null,
+                colour        || null,
+                latitude      ? parseFloat(latitude)  : null,
+                longitude     ? parseFloat(longitude) : null
+            ]
         );
         const { item_id: itemId } = itemResult.rows[0];
 
@@ -133,7 +153,8 @@ async function reportLostItem(req, res) {
         setImmediate(async () => {
             try {
                 const enrichedText = `${title} ${description}`.trim();
-                const extraFields  = { title, item_type: 'Lost' };
+                // Pass colour so the embedding captures it explicitly
+                const extraFields  = { title, item_type: 'Lost', colour: colour || '' };
 
                 await generateTextEmbedding(itemId, enrichedText, extraFields);
                 await generateClipTextEmbedding(itemId, enrichedText, extraFields);
@@ -143,8 +164,6 @@ async function reportLostItem(req, res) {
                 }
 
                 const matches = await findMatchesForLostItem(itemId);
-
-                // saveMatchesAndNotify also sends match emails to lost item owners
                 await saveMatchesAndNotify(matches, itemId, 'Lost');
 
             } catch (err) {
@@ -199,6 +218,7 @@ async function getMyItems(req, res) {
                 i.type,
                 i.status,
                 i.location,
+                i.colour,
                 i.date_reported,
                 i.is_active,
                 c.category_name,
@@ -239,7 +259,8 @@ async function getItemById(req, res) {
         const result = await pool.query(
             `SELECT
                 i.item_id, i.title, i.description, i.type, i.status, i.location,
-                i.date_reported, i.hidden_details, i.is_active,
+                i.colour, i.date_reported, i.hidden_details, i.is_active,
+                i.latitude, i.longitude,
                 c.category_name, c.category_id,
                 u.name AS reported_by,
                 img.image_url AS primary_image
@@ -257,7 +278,6 @@ async function getItemById(req, res) {
 
         const item = result.rows[0];
 
-        // Only expose hidden_details to the item's own owner
         if (item.hidden_details && parseInt(itemId)) {
             const ownerCheck = await pool.query(
                 'SELECT user_id FROM items WHERE item_id = $1', [itemId]
@@ -305,6 +325,7 @@ async function getMatchesForItem(req, res) {
                 found_item.title        AS found_title,
                 found_item.description  AS found_description,
                 found_item.location     AS found_location,
+                found_item.colour       AS found_colour,
                 found_item.date_reported AS found_date,
                 finder.user_id          AS finder_user_id,
                 finder.name             AS finder_name,
@@ -323,6 +344,7 @@ async function getMatchesForItem(req, res) {
                 lost_item.title        AS lost_title,
                 lost_item.description  AS lost_description,
                 lost_item.location     AS lost_location,
+                lost_item.colour       AS lost_colour,
                 owner.user_id          AS owner_user_id,
                 owner.name             AS owner_name
                FROM matches m
