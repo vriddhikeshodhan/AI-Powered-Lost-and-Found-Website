@@ -53,7 +53,7 @@ router = APIRouter()
 # ── Colour scoring constants ──────────────────────────────────────────────────
 COLOUR_MATCH_BONUS   =  0.10   # +10% when both items have the same colour
 COLOUR_MISMATCH_PEN  =  0.05   # -5%  when both items have different colours
-LOCATION_RADIUS_M    = 5000    # 5km — items beyond this are still included but deprioritised
+LOCATION_RADIUS_M    = 1000    # 5km — items beyond this are still included but deprioritised
 
 
 class MatchRequest(BaseModel):
@@ -170,7 +170,7 @@ async def find_matches(request: MatchRequest):
         has_location = found_lat is not None and found_lng is not None
 
         if has_location:
-            loc_sql = _location_filter_sql(0, 0, 0)  # placeholder — params built below
+            loc_sql = _location_filter_sql(0, 0)  # placeholder — params built below
             query = f"""
                 SELECT item_id, title, description, user_id, colour,
                        latitude, longitude,

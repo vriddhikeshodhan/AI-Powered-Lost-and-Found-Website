@@ -351,6 +351,7 @@ import './LostPage.css';
 import AIMatchingModal from "./AIMatchingModal";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import MapPicker from "./MapPicker";
 
 function LostPage() {
     const [formData, setFormData] = useState({
@@ -368,9 +369,7 @@ function LostPage() {
     const [submittedItemId, setSubmittedItemId] = useState(null);
     const [error, setError]                    = useState("");
 
-    // NEW — GPS coordinates captured from browser silently on mount
-    const [gpsCoords, setGpsCoords] = useState({ latitude: null, longitude: null });
-
+    const [mapCoords, setMapCoords] = useState({ latitude: null, longitude: null });
     const navigate = useNavigate();
 /*
     useEffect(() => {
@@ -390,7 +389,8 @@ function LostPage() {
                     "id card", "college", 
                     "jewellery", "accessories", 
                     "other", 
-                    "sport"
+                    "sport",
+                    "book"
                 ];
 
                 // 2. Filter out any category that contains ANY of those keywords
@@ -431,9 +431,8 @@ function LostPage() {
             data.append("hidden_details", formData.hidden_details);
             data.append("colour",         formData.colour);   // NEW
 
-            // NEW — include GPS if browser provided it
-            if (gpsCoords.latitude  !== null) data.append("latitude",  gpsCoords.latitude);
-            if (gpsCoords.longitude !== null) data.append("longitude", gpsCoords.longitude);
+            if (mapCoords.latitude  !== null) data.append("latitude",  mapCoords.latitude);
+            if (mapCoords.longitude !== null) data.append("longitude", mapCoords.longitude);
 
             if (formData.photo) data.append("image", formData.photo);
 
@@ -495,12 +494,6 @@ function LostPage() {
                     </p>
                 </div>
 
-                {gpsCoords.latitude && (
-                    <p style={{ fontSize:"12px", color:"#16a34a", marginBottom:"8px" }}>
-                        📍 Location captured — this will improve match accuracy.
-                    </p>
-                )}
-
                 {error && (
                     <div style={{ background:"#fef2f2", color:"#dc2626", border:"1px solid #fecaca", borderRadius:"6px", padding:"10px", marginBottom:"16px", fontSize:"14px" }}>
                         {error}
@@ -549,12 +542,26 @@ function LostPage() {
                         />
                         <p className="input-tagline">Exact colour match gives a +10% confidence bonus.</p>
                     </div>
-
-                    {/* Location */}
                     <div className="form-group">
                         <label htmlFor="location">Last Known Location:</label>
                         <input type="text" id="location" name="location" placeholder="Example: University Library, 3rd Floor" value={formData.location} onChange={handleChange} required className="form-input" />
                     </div>
+
+                    {/* NEW MAP PICKER */}
+                    <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+                        <label>Pinpoint where you lost it <span style={{color:"#16a34a", fontSize:"12px"}}>(Click on the map)</span></label>
+                        <MapPicker position={mapCoords} setPosition={setMapCoords} />
+                        {mapCoords.latitude ? (
+                            <p style={{ fontSize:"12px", color:"#16a34a", marginTop:"6px", fontWeight: "600" }}>
+                                📍 Pin dropped successfully!
+                            </p>
+                        ) : (
+                            <p style={{ fontSize:"12px", color:"#dc2626", marginTop:"6px" }}>
+                                * Please tap on the map to drop a location pin.
+                            </p>
+                        )}
+                    </div>
+                    
 
                     {/* Hidden details */}
                     <div className="form-group">

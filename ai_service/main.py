@@ -33,6 +33,7 @@
 
 import logging
 import asyncio
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -89,6 +90,13 @@ app = FastAPI(
     description="Handles embedding generation and item matching",
     version="1.0.0",
     lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],     # Allows requests from any origin (like localhost:3000)
+    allow_credentials=True,
+    allow_methods=["*"],     # Allows all methods (POST, GET, OPTIONS, etc.)
+    allow_headers=["*"],     # Allows all headers
 )
 
 # ─────────────────────────────────────────────────────────────────────────────

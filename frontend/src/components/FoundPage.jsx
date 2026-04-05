@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./FoundPage.css";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import MapPicker from "./MapPicker";
 
 export default function FoundPage() {
     const [categories, setCategories] = useState([]);
@@ -19,15 +20,13 @@ export default function FoundPage() {
         photo: null,
     });
 
-    // NEW — GPS coordinates captured silently from browser on mount
-    const [gpsCoords, setGpsCoords] = useState({ latitude: null, longitude: null });
-    /*
+    const [mapCoords, setMapCoords] = useState({ latitude: null, longitude: null });
     useEffect(() => {
         api.get("/items/categories")
             .then(res => setCategories(res.data.categories))
             .catch(() => setCategories([]));
     }, []);
-*/
+
     useEffect(() => {
         api.get("/items/categories")
             .then(res => {
@@ -39,7 +38,8 @@ export default function FoundPage() {
                     "id card", "college", 
                     "jewellery", "accessories", 
                     "other", 
-                    "sport"
+                    "sport",
+                    "book"
                 ];
 
                 // 2. Filter out any category that contains ANY of those keywords
@@ -56,15 +56,6 @@ export default function FoundPage() {
                 setCategories(filteredCategories);
             })
             .catch(() => setCategories([]));
-    }, []);
-    // NEW — request GPS silently; if denied, matching continues without location
-    useEffect(() => {
-        if (!navigator.geolocation) return;
-        navigator.geolocation.getCurrentPosition(
-            (pos) => setGpsCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-            () => {},   // silently ignore denial
-            { timeout: 8000 }
-        );
     }, []);
 
     const handleChange = (e) => {
@@ -89,9 +80,8 @@ export default function FoundPage() {
             data.append("colour",      formData.colour);   // NEW
 
             // NEW — include GPS if browser provided it
-            if (gpsCoords.latitude  !== null) data.append("latitude",  gpsCoords.latitude);
-            if (gpsCoords.longitude !== null) data.append("longitude", gpsCoords.longitude);
-
+            if (mapCoords.latitude  !== null) data.append("latitude",  mapCoords.latitude);
+            if (mapCoords.longitude !== null) data.append("longitude", mapCoords.longitude);
             if (formData.photo) data.append("image", formData.photo);
 
             await api.post("/items/found", data, {
@@ -123,13 +113,6 @@ export default function FoundPage() {
                     <div className="card-header">
                         <h2 className="card-title">Found Item Details</h2>
                     </div>
-
-                    {/* GPS status indicator */}
-                    {gpsCoords.latitude && (
-                        <p style={{ fontSize:"12px", color:"#16a34a", marginBottom:"8px" }}>
-                            📍 Location captured — this will improve match accuracy.
-                        </p>
-                    )}
 
                     {/* Success Banner */}
                     {success && (
@@ -197,6 +180,21 @@ export default function FoundPage() {
                                 <div className="form-group">
                                     <label>Where did you find it?</label>
                                     <input type="text" name="location" placeholder="Example: Library, 2nd floor, near window table" value={formData.location} onChange={handleChange} required />
+                                </div>
+
+                                {/* NEW MAP PICKER */}
+                                <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                                    <label>Pinpoint exactly where you found it <span style={{color:"#16a34a", fontSize:"12px"}}>(Click on the map)</span></label>
+                                    <MapPicker position={mapCoords} setPosition={setMapCoords} />
+                                    {mapCoords.latitude ? (
+                                        <p style={{ fontSize:"12px", color:"#16a34a", marginTop:"6px", fontWeight: "600" }}>
+                                            📍 Pin dropped successfully!
+                                        </p>
+                                    ) : (
+                                        <p style={{ fontSize:"12px", color:"#dc2626", marginTop:"6px" }}>
+                                            * Please tap on the map to drop a location pin.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Photo */}

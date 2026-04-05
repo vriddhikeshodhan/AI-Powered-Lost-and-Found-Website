@@ -196,7 +196,10 @@ async function getMyItems(req, res) {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const params  = [userId];
-    const filters = ['i.user_id = $1'];
+    
+    // FIX: Added 'i.is_active = TRUE' to the base filters array
+    // This completely hides deleted items from the dashboard.
+    const filters = ['i.user_id = $1', 'i.is_active = TRUE'];
 
     if (type   && ['Lost','Found'].includes(type))                     { params.push(type);   filters.push(`i.type = $${params.length}`); }
     if (status && ['active','resolved','expired'].includes(status))    { params.push(status); filters.push(`i.status = $${params.length}`); }
@@ -336,6 +339,9 @@ async function getMatchesForItem(req, res) {
                JOIN users finder         ON finder.user_id = found_item.user_id
                LEFT JOIN item_image img  ON img.item_id = found_item.item_id AND img.is_primary = TRUE
                WHERE m.lost_item_id = $1
+                 -- FIX: Ensure the FOUND item hasn't been deleted or resolved
+                 AND found_item.is_active = TRUE 
+                 AND found_item.status = 'active'
                ORDER BY m.confidence_score DESC`
             : `SELECT
                 m.match_id, m.confidence_score, m.created_at AS matched_at,
@@ -352,6 +358,9 @@ async function getMatchesForItem(req, res) {
                JOIN items lost_item  ON lost_item.item_id = m.lost_item_id
                JOIN users owner      ON owner.user_id = lost_item.user_id
                WHERE m.found_item_id = $1
+                 -- FIX: Ensure the LOST item hasn't been deleted or resolved
+                 AND lost_item.is_active = TRUE 
+                 AND lost_item.status = 'active'
                ORDER BY m.confidence_score DESC`;
 
         const result = await pool.query(matchQuery, [itemId]);
@@ -369,7 +378,6 @@ async function getMatchesForItem(req, res) {
         return res.status(500).json({ error: 'Failed to fetch matches' });
     }
 }
-
 
 // ─────────────────────────────────────────────
 // PATCH /api/items/:itemId/resolve
